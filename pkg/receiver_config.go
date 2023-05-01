@@ -16,6 +16,7 @@ type ReceiverConfig struct {
 
 	// AuthorizationToken is the authorization token used to authorize
 	// your receiver with the specified transmitter
+	//
 	// Note - all transmitter's will require an authorization token
 	//
 	// Required
@@ -27,11 +28,15 @@ type ReceiverConfig struct {
 	// pass as a parameter the list of received CAEP events since the
 	// last push call.
 	//
+	// Note - The PushCallback and PushInterval can also be configured
+	// after initial receiver construction
+	//
 	// Optional
 	PushCallback func(events []CaepEvent)
 
 	// PushInterval defines, in seconds how often you want the receiver to
 	// push any CAEP events to your callback function.
+	//
 	// Note - This field will not be used if the PushCallback isn't configured
 	//
 	// Optional, defaults to __
