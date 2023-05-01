@@ -32,6 +32,7 @@ type ReceiverConfig struct {
 
 	// PushInterval defines, in seconds how often you want the receiver to
 	// push any CAEP events to your callback function.
+	// Note - This field will not be used if the PushCallback isn't configured
 	//
 	// Optional, defaults to __
 	PushInterval int
