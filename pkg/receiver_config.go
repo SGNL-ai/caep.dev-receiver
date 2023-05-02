@@ -12,7 +12,7 @@ type ReceiverConfig struct {
 	// from the transmitter.
 	//
 	// Required
-	EventsRequested []EventNums
+	EventsRequested []EventType
 
 	// AuthorizationToken is the authorization token used to authorize
 	// your receiver with the specified transmitter
@@ -39,6 +39,6 @@ type ReceiverConfig struct {
 	//
 	// Note - This field will not be used if the PushCallback isn't configured
 	//
-	// Optional, defaults to __
+	// Optional, defaults to 300 (5 minutes)
 	PushInterval int
 }
