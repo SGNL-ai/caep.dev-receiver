@@ -10,5 +10,5 @@ const (
 type CaepEvent interface {
 	// Placeholder for now - not sure what common methods
 	// we'd want for this interface?
-	ToString() string
+	String() string
 }
