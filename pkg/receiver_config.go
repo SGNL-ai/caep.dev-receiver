@@ -8,6 +8,14 @@ type ReceiverConfig struct {
 	// Required
 	TransmitterUrl string
 
+	// TransmitterPollUrl defines the URL that the receiver will use
+	// to poll for CAEP events.
+	//
+	// Note - Must be a subpath of TransmitterUrl
+	//
+	// Required
+	TransmitterPollUrl string
+
 	// EventsRequested specified the CAEP events you want to receiver
 	// from the transmitter.
 	//

@@ -8,7 +8,10 @@ const (
 )
 
 type CaepEvent interface {
-	// Placeholder for now - not sure what common methods
-	// we'd want for this interface?
-	String() string
+	GetSubject() string
+}
+
+var eventUri = map[EventType]string{
+	SessionRevoked:         "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	DeviceComplianceChange: "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 }
