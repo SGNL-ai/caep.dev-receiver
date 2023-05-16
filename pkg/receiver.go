@@ -1,0 +1,308 @@
+package pkg
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+const TransmitterConfigMetadataPath = "/.well-known/ssf-configuration"
+const TransmitterPollRFC = "urn:ietf:rfc:8936"
+
+// Initializes the CAEP Receiver based on the specified configuration.
+//
+// Returns an error if any process of configuring the receiver, registering
+// it with the transmitter, or setting up the push interval failed
+func ConfigureReceiver(cfg ReceiverConfig) (CaepReceiver, error) {
+	if cfg.TransmitterUrl == "" || cfg.TransmitterPollUrl == "" || len(cfg.EventsRequested) == 0 || cfg.AuthorizationToken == "" {
+		return nil, errors.New("Receiver Config - missing required field")
+	}
+
+	transmitterUrl, err := url.Parse(cfg.TransmitterUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl := transmitterUrl.Host
+	trailingPath := transmitterUrl.Path
+
+	transmitterConfigEndpoint := "https://" + baseUrl + TransmitterConfigMetadataPath
+	if trailingPath != "/" {
+		transmitterConfigEndpoint += trailingPath
+	}
+
+	transmitterCfg, err := makeTransmitterConfigRequest(transmitterConfigEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	if transmitterCfg.ConfigurationEndpoint == "" {
+		return nil, errors.New("Given transmitter doesn't specify the configuration endpoint")
+	}
+
+	streamId, err := makeCreateStreamRequest(transmitterCfg.ConfigurationEndpoint, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	receiver := CaepReceiverImplementation{
+		transmitterUrl:     cfg.TransmitterUrl,
+		transmitterPollUrl: cfg.TransmitterPollUrl,
+		eventsRequested:    EventTypeArrayToEventUriArray(cfg.EventsRequested),
+		authorizationToken: cfg.AuthorizationToken,
+		pushInterval:       300,
+		streamId:           streamId,
+		configurationUrl:   transmitterCfg.ConfigurationEndpoint,
+	}
+	if cfg.PushInterval != 0 {
+		receiver.pushInterval = cfg.PushInterval
+	}
+
+	if cfg.PushCallback != nil {
+		receiver.pushCallback = cfg.PushCallback
+		receiver.InitPushInterval()
+	}
+
+	return &receiver, nil
+}
+
+// Makes the Transmitter Configuration Metadata request to determine
+// the transmitter's configuration url for creating a stream
+func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var configMetadata TransmitterConfig
+	err = json.Unmarshal(body, &configMetadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return &configMetadata, nil
+}
+
+// Makes the Create Stream Request to the transmitter
+func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
+	client := &http.Client{}
+
+	delivery := CaepDelivery{DeliveryMethod: TransmitterPollRFC}
+	createStreamRequest := CreateStreamReq{
+		Delivery:        delivery,
+		EventsRequested: EventTypeArrayToEventUriArray(cfg.EventsRequested),
+	}
+
+	requestBody, err := json.Marshal(createStreamRequest)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+cfg.AuthorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	type Stream struct {
+		StreamId string `json:"stream_id"`
+	}
+
+	var stream Stream
+	err = json.Unmarshal(body, &stream)
+	if err != nil {
+		return "", err
+	}
+
+	return stream.StreamId, nil
+}
+
+// Initializes the push interval for the receiver that will intermittently
+// push CAEP Events to the specified callback function
+func (receiver *CaepReceiverImplementation) InitPushInterval() {
+	// Create a channel to listen for quit signals
+	receiver.terminate = make(chan bool)
+
+	// Start a Goroutine to run the request on a schedule
+	go func() {
+		for {
+			select {
+			case <-receiver.terminate:
+				return
+			default:
+				// TODO: Implement function to poll events and push to callback
+				println("Polling for Events")
+				events, err := receiver.PollEvents()
+				if err == nil {
+					receiver.pushCallback(events)
+				} else {
+					// TODO: What to do on error?
+					panic(err)
+				}
+				time.Sleep(time.Duration(receiver.pushInterval) * time.Second)
+			}
+		}
+	}()
+}
+
+// TODO: Not Yet Implemented
+func (receiver *CaepReceiverImplementation) ConfigureCallback(callback func(events []CaepEvent), pushInterval int) error {
+	return nil
+}
+
+// Polls the transmitter for all available CAEP Events, returning them as a list
+// for use
+func (receiver *CaepReceiverImplementation) PollEvents() ([]CaepEvent, error) {
+	client := &http.Client{}
+	pollRequest := PollTransmitterRequest{Acknowledgements: []string{}, MaxEvents: 10, ReturnImmediately: true}
+	requestBody, err := json.Marshal(pollRequest)
+	if err != nil {
+		return []CaepEvent{}, err
+	}
+
+	req, err := http.NewRequest("POST", receiver.transmitterPollUrl, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return []CaepEvent{}, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return []CaepEvent{}, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	type CaepEventSets struct {
+		Sets map[string]string `json:"sets"`
+	}
+
+	var caepEventsSets CaepEventSets
+	err = json.Unmarshal(body, &caepEventsSets)
+	if err != nil {
+		return []CaepEvent{}, nil
+	}
+
+	if len(caepEventsSets.Sets) > 0 {
+		err = acknowledgeEvents(&caepEventsSets.Sets, receiver)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	events, err := parseCaepEventSets(&caepEventsSets.Sets)
+
+	return events, nil
+}
+
+// Cleans up the resources used by the Receiver and deletes the Receiver's
+// stream from the transmitter
+func (receiver *CaepReceiverImplementation) DeleteReceiver() {
+	receiver.terminate <- true
+
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", receiver.configurationUrl+"?stream_id="+receiver.streamId, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Authorization", receiver.authorizationToken)
+
+	_, err = client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Method to acknowledge a list of JTI's (unique ids for each CAEP Events) with the
+// transmitter so the events are re-transmitted
+func acknowledgeEvents(sets *map[string]string, receiver *CaepReceiverImplementation) error {
+	ackList := make([]string, len(*sets))
+	i := 0
+	for jti := range *sets {
+		ackList[i] = jti
+		i++
+	}
+
+	client := &http.Client{}
+	pollRequest := PollTransmitterRequest{Acknowledgements: ackList, MaxEvents: 0, ReturnImmediately: true}
+	requestBody, err := json.Marshal(pollRequest)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", receiver.transmitterPollUrl, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Parses a list of JTI:JWT pairings, return a list of the CAEP Events from the JWT's
+func parseCaepEventSets(sets *map[string]string) ([]CaepEvent, error) {
+	var caepEventsList []CaepEvent
+
+	for _, set := range *sets {
+		token, err := jwt.Parse(set, func(token *jwt.Token) (interface{}, error) { return jwt.UnsafeAllowNoneSignatureType, nil })
+		if err != nil {
+			return []CaepEvent{}, err
+		}
+
+		token.Claims.GetSubject()
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return []CaepEvent{}, errors.New("Can't get JWT Claims")
+		}
+
+		events := claims["events"].(map[string]interface{})
+		for eventType, eventSubject := range events {
+			caepEvent, err := EventStructFromEvent(eventType, eventSubject, claims)
+			if err != nil {
+				return []CaepEvent{}, err
+			}
+
+			caepEventsList = append(caepEventsList, caepEvent)
+		}
+	}
+
+	return caepEventsList, nil
+}
