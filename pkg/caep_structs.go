@@ -1,13 +1,15 @@
 package pkg
 
+import event "caep-receiver/pkg/events"
+
 // Represents the interface for the CAEP receiver with user facing
 // methods
 type CaepReceiver interface {
-	ConfigureCallback(callback func(events []CaepEvent), pushInterval int) error
+	ConfigureCallback(callback func(events []event.CaepEvent), pollInterval int) error
 
 	// Polls the configured receiver a returns a list of the available CAEP
 	// Events
-	PollEvents() ([]CaepEvent, error)
+	PollEvents() ([]event.CaepEvent, error)
 
 	// Cleans up the Receiver's resources and deletes it from the transmitter
 	DeleteReceiver()
@@ -32,13 +34,15 @@ type CaepReceiverImplementation struct {
 	// receiver with the transmitter
 	authorizationToken string
 
-	// pushCallback defines the method the receiver will call to pass
-	// events into when the push interval is triggered
-	pushCallback func(events []CaepEvent)
+	// pollCallback defines the method the receiver will call to pass
+	// events into when the poll interval is triggered
+	pollCallback func(events []event.CaepEvent)
 
-	// pushInterval defines the interval, in seconds, between every
-	// CAEP Event push delivery to the callback method
-	pushInterval int
+	// pollInterval defines the interval, in seconds, between every
+	// poll request the receiver will make to the transmitter. After
+	// each poll request, the available caep events will be passed in
+	// a function call to pollCallback
+	pollInterval int
 
 	// configurationUrl defines the transmitter's configuration url
 	configurationUrl string

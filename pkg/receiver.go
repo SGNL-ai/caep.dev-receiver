@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"caep-receiver/pkg/events"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,19 +55,19 @@ func ConfigureReceiver(cfg ReceiverConfig) (CaepReceiver, error) {
 	receiver := CaepReceiverImplementation{
 		transmitterUrl:     cfg.TransmitterUrl,
 		transmitterPollUrl: cfg.TransmitterPollUrl,
-		eventsRequested:    EventTypeArrayToEventUriArray(cfg.EventsRequested),
+		eventsRequested:    events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
 		authorizationToken: cfg.AuthorizationToken,
-		pushInterval:       300,
+		pollInterval:       300,
 		streamId:           streamId,
 		configurationUrl:   transmitterCfg.ConfigurationEndpoint,
 	}
-	if cfg.PushInterval != 0 {
-		receiver.pushInterval = cfg.PushInterval
+	if cfg.PollInterval != 0 {
+		receiver.pollInterval = cfg.PollInterval
 	}
 
-	if cfg.PushCallback != nil {
-		receiver.pushCallback = cfg.PushCallback
-		receiver.InitPushInterval()
+	if cfg.PollCallback != nil {
+		receiver.pollCallback = cfg.PollCallback
+		receiver.InitPollInterval()
 	}
 
 	return &receiver, nil
@@ -108,7 +109,7 @@ func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
 	delivery := CaepDelivery{DeliveryMethod: TransmitterPollRFC}
 	createStreamRequest := CreateStreamReq{
 		Delivery:        delivery,
-		EventsRequested: EventTypeArrayToEventUriArray(cfg.EventsRequested),
+		EventsRequested: events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
 	}
 
 	requestBody, err := json.Marshal(createStreamRequest)
@@ -147,7 +148,7 @@ func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
 
 // Initializes the push interval for the receiver that will intermittently
 // push CAEP Events to the specified callback function
-func (receiver *CaepReceiverImplementation) InitPushInterval() {
+func (receiver *CaepReceiverImplementation) InitPollInterval() {
 	// Create a channel to listen for quit signals
 	receiver.terminate = make(chan bool)
 
@@ -162,35 +163,35 @@ func (receiver *CaepReceiverImplementation) InitPushInterval() {
 				println("Polling for Events")
 				events, err := receiver.PollEvents()
 				if err == nil {
-					receiver.pushCallback(events)
+					receiver.pollCallback(events)
 				} else {
 					// TODO: What to do on error?
 					panic(err)
 				}
-				time.Sleep(time.Duration(receiver.pushInterval) * time.Second)
+				time.Sleep(time.Duration(receiver.pollInterval) * time.Second)
 			}
 		}
 	}()
 }
 
 // TODO: Not Yet Implemented
-func (receiver *CaepReceiverImplementation) ConfigureCallback(callback func(events []CaepEvent), pushInterval int) error {
+func (receiver *CaepReceiverImplementation) ConfigureCallback(callback func(events []events.CaepEvent), pollInterval int) error {
 	return nil
 }
 
 // Polls the transmitter for all available CAEP Events, returning them as a list
 // for use
-func (receiver *CaepReceiverImplementation) PollEvents() ([]CaepEvent, error) {
+func (receiver *CaepReceiverImplementation) PollEvents() ([]events.CaepEvent, error) {
 	client := &http.Client{}
 	pollRequest := PollTransmitterRequest{Acknowledgements: []string{}, MaxEvents: 10, ReturnImmediately: true}
 	requestBody, err := json.Marshal(pollRequest)
 	if err != nil {
-		return []CaepEvent{}, err
+		return []events.CaepEvent{}, err
 	}
 
 	req, err := http.NewRequest("POST", receiver.transmitterPollUrl, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return []CaepEvent{}, err
+		return []events.CaepEvent{}, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
@@ -198,7 +199,7 @@ func (receiver *CaepReceiverImplementation) PollEvents() ([]CaepEvent, error) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		return []CaepEvent{}, err
+		return []events.CaepEvent{}, err
 	}
 
 	defer response.Body.Close()
@@ -211,7 +212,7 @@ func (receiver *CaepReceiverImplementation) PollEvents() ([]CaepEvent, error) {
 	var caepEventsSets CaepEventSets
 	err = json.Unmarshal(body, &caepEventsSets)
 	if err != nil {
-		return []CaepEvent{}, nil
+		return []events.CaepEvent{}, nil
 	}
 
 	if len(caepEventsSets.Sets) > 0 {
@@ -278,26 +279,26 @@ func acknowledgeEvents(sets *map[string]string, receiver *CaepReceiverImplementa
 }
 
 // Parses a list of JTI:JWT pairings, return a list of the CAEP Events from the JWT's
-func parseCaepEventSets(sets *map[string]string) ([]CaepEvent, error) {
-	var caepEventsList []CaepEvent
+func parseCaepEventSets(sets *map[string]string) ([]events.CaepEvent, error) {
+	var caepEventsList []events.CaepEvent
 
 	for _, set := range *sets {
 		token, err := jwt.Parse(set, func(token *jwt.Token) (interface{}, error) { return jwt.UnsafeAllowNoneSignatureType, nil })
 		if err != nil {
-			return []CaepEvent{}, err
+			return []events.CaepEvent{}, err
 		}
 
 		token.Claims.GetSubject()
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			return []CaepEvent{}, errors.New("Can't get JWT Claims")
+			return []events.CaepEvent{}, errors.New("Can't get JWT Claims")
 		}
 
-		events := claims["events"].(map[string]interface{})
-		for eventType, eventSubject := range events {
-			caepEvent, err := EventStructFromEvent(eventType, eventSubject, claims)
+		caepEvents := claims["events"].(map[string]interface{})
+		for eventType, eventSubject := range caepEvents {
+			caepEvent, err := events.EventStructFromEvent(eventType, eventSubject, claims)
 			if err != nil {
-				return []CaepEvent{}, err
+				return []events.CaepEvent{}, err
 			}
 
 			caepEventsList = append(caepEventsList, caepEvent)

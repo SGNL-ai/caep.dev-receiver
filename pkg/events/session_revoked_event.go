@@ -1,10 +1,16 @@
-package pkg
+package events
 
 type SessionRevokedEvent struct {
 	// Json defines the raw JSON of the CAEP Event. Used if
 	// a developer wants greater control over all the attributes
 	// of the CAEP Event
 	Json map[string]interface{}
+
+	// SubjectFormat defines the format of the subject event.
+	//
+	// See: https://datatracker.ietf.org/doc/html/draft-ietf-secevent-subject-identifiers
+	// for an overview of available subject formats for CAEP Events
+	Format SubjectFormat
 
 	// Subject defines the subject that the CAEP Event applies to.
 	//
@@ -19,6 +25,10 @@ type SessionRevokedEvent struct {
 
 func (event *SessionRevokedEvent) GetEventUri() string {
 	return "https://schemas.openid.net/secevent/caep/event-type/session-revoked"
+}
+
+func (event *SessionRevokedEvent) GetSubjectFormat() SubjectFormat {
+	return event.Format
 }
 
 func (event *SessionRevokedEvent) GetSubject() map[string]interface{} {
