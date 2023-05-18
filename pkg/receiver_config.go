@@ -1,6 +1,6 @@
 package pkg
 
-import "caep-receiver/pkg/events"
+import events "caep.dev-receiver/pkg/ssf_events"
 
 type ReceiverConfig struct {
 	// TransmitterUrl defines the URL for the transmitter that
@@ -11,14 +11,14 @@ type ReceiverConfig struct {
 	TransmitterUrl string
 
 	// TransmitterPollUrl defines the URL that the receiver will use
-	// to poll for CAEP events.
+	// to poll for SSF events.
 	//
 	// Note - Must be a subpath of TransmitterUrl
 	//
 	// Required
 	TransmitterPollUrl string
 
-	// EventsRequested specified the CAEP events you want to receiver
+	// EventsRequested specified the SSF events you want to receiver
 	// from the transmitter.
 	//
 	// Required
@@ -35,17 +35,17 @@ type ReceiverConfig struct {
 	// PollCallback is used to configure the method that you want the
 	// receiver to call after each automatic poll request. Each time
 	// the poll interval timer is up, the receiver will make a request
-	// to the specified transmitter and fetch available CAEP events. It
+	// to the specified transmitter and fetch available SSF events. It
 	// will then call PollCallback with a list of those events
 	//
 	// Note - The PollCallback and PollInterval can also be configured
 	// after initial receiver construction
 	//
 	// Optional
-	PollCallback func(events []events.CaepEvent)
+	PollCallback func(events []events.SsfEvent)
 
 	// PollInterval defines, in seconds how often you want the receiver to
-	// poll for CAEP events any and pass them to your PollCallback function.
+	// poll for SSF events any and pass them to your PollCallback function.
 	//
 	// Note - This field will not be used if the PollCallback isn't configured
 	//

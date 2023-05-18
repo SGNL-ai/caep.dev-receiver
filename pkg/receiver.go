@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"bytes"
-	"caep-receiver/pkg/events"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,17 +10,19 @@ import (
 	"net/url"
 	"time"
 
+	events "caep.dev-receiver/pkg/ssf_events"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
 const TransmitterConfigMetadataPath = "/.well-known/ssf-configuration"
 const TransmitterPollRFC = "urn:ietf:rfc:8936"
 
-// Initializes the CAEP Receiver based on the specified configuration.
+// Initializes the SSF Receiver based on the specified configuration.
 //
 // Returns an error if any process of configuring the receiver, registering
-// it with the transmitter, or setting up the push interval failed
-func ConfigureReceiver(cfg ReceiverConfig) (CaepReceiver, error) {
+// it with the transmitter, or setting up the poll interval failed
+func ConfigureReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	if cfg.TransmitterUrl == "" || cfg.TransmitterPollUrl == "" || len(cfg.EventsRequested) == 0 || cfg.AuthorizationToken == "" {
 		return nil, errors.New("Receiver Config - missing required field")
 	}
@@ -52,7 +53,7 @@ func ConfigureReceiver(cfg ReceiverConfig) (CaepReceiver, error) {
 		return nil, err
 	}
 
-	receiver := CaepReceiverImplementation{
+	receiver := SsfReceiverImplementation{
 		transmitterUrl:     cfg.TransmitterUrl,
 		transmitterPollUrl: cfg.TransmitterPollUrl,
 		eventsRequested:    events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
@@ -106,7 +107,7 @@ func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
 func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
 	client := &http.Client{}
 
-	delivery := CaepDelivery{DeliveryMethod: TransmitterPollRFC}
+	delivery := SsfDelivery{DeliveryMethod: TransmitterPollRFC}
 	createStreamRequest := CreateStreamReq{
 		Delivery:        delivery,
 		EventsRequested: events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
@@ -146,9 +147,9 @@ func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
 	return stream.StreamId, nil
 }
 
-// Initializes the push interval for the receiver that will intermittently
-// push CAEP Events to the specified callback function
-func (receiver *CaepReceiverImplementation) InitPollInterval() {
+// Initializes the poll interval for the receiver that will intermittently
+// send SSF Events to the specified callback function
+func (receiver *SsfReceiverImplementation) InitPollInterval() {
 	// Create a channel to listen for quit signals
 	receiver.terminate = make(chan bool)
 
@@ -159,7 +160,6 @@ func (receiver *CaepReceiverImplementation) InitPollInterval() {
 			case <-receiver.terminate:
 				return
 			default:
-				// TODO: Implement function to poll events and push to callback
 				println("Polling for Events")
 				events, err := receiver.PollEvents()
 				if err == nil {
@@ -175,23 +175,23 @@ func (receiver *CaepReceiverImplementation) InitPollInterval() {
 }
 
 // TODO: Not Yet Implemented
-func (receiver *CaepReceiverImplementation) ConfigureCallback(callback func(events []events.CaepEvent), pollInterval int) error {
+func (receiver *SsfReceiverImplementation) ConfigureCallback(callback func(events []events.SsfEvent), pollInterval int) error {
 	return nil
 }
 
-// Polls the transmitter for all available CAEP Events, returning them as a list
+// Polls the transmitter for all available SSF Events, returning them as a list
 // for use
-func (receiver *CaepReceiverImplementation) PollEvents() ([]events.CaepEvent, error) {
+func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, error) {
 	client := &http.Client{}
 	pollRequest := PollTransmitterRequest{Acknowledgements: []string{}, MaxEvents: 10, ReturnImmediately: true}
 	requestBody, err := json.Marshal(pollRequest)
 	if err != nil {
-		return []events.CaepEvent{}, err
+		return []events.SsfEvent{}, err
 	}
 
 	req, err := http.NewRequest("POST", receiver.transmitterPollUrl, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return []events.CaepEvent{}, err
+		return []events.SsfEvent{}, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
@@ -199,36 +199,36 @@ func (receiver *CaepReceiverImplementation) PollEvents() ([]events.CaepEvent, er
 
 	response, err := client.Do(req)
 	if err != nil {
-		return []events.CaepEvent{}, err
+		return []events.SsfEvent{}, err
 	}
 
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
-	type CaepEventSets struct {
+	type SsfEventSets struct {
 		Sets map[string]string `json:"sets"`
 	}
 
-	var caepEventsSets CaepEventSets
-	err = json.Unmarshal(body, &caepEventsSets)
+	var ssfEventsSets SsfEventSets
+	err = json.Unmarshal(body, &ssfEventsSets)
 	if err != nil {
-		return []events.CaepEvent{}, nil
+		return []events.SsfEvent{}, nil
 	}
 
-	if len(caepEventsSets.Sets) > 0 {
-		err = acknowledgeEvents(&caepEventsSets.Sets, receiver)
+	if len(ssfEventsSets.Sets) > 0 {
+		err = acknowledgeEvents(&ssfEventsSets.Sets, receiver)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	events, err := parseCaepEventSets(&caepEventsSets.Sets)
+	events, err := parseSsfEventSets(&ssfEventsSets.Sets)
 
 	return events, nil
 }
 
 // Cleans up the resources used by the Receiver and deletes the Receiver's
 // stream from the transmitter
-func (receiver *CaepReceiverImplementation) DeleteReceiver() {
+func (receiver *SsfReceiverImplementation) DeleteReceiver() {
 	receiver.terminate <- true
 
 	client := &http.Client{}
@@ -245,9 +245,9 @@ func (receiver *CaepReceiverImplementation) DeleteReceiver() {
 	}
 }
 
-// Method to acknowledge a list of JTI's (unique ids for each CAEP Events) with the
+// Method to acknowledge a list of JTI's (unique ids for each SSF Event) with the
 // transmitter so the events are re-transmitted
-func acknowledgeEvents(sets *map[string]string, receiver *CaepReceiverImplementation) error {
+func acknowledgeEvents(sets *map[string]string, receiver *SsfReceiverImplementation) error {
 	ackList := make([]string, len(*sets))
 	i := 0
 	for jti := range *sets {
@@ -278,32 +278,32 @@ func acknowledgeEvents(sets *map[string]string, receiver *CaepReceiverImplementa
 	return nil
 }
 
-// Parses a list of JTI:JWT pairings, return a list of the CAEP Events from the JWT's
-func parseCaepEventSets(sets *map[string]string) ([]events.CaepEvent, error) {
-	var caepEventsList []events.CaepEvent
+// Parses a list of JTI:JWT pairings, return a list of the SSF Events from the JWT's
+func parseSsfEventSets(sets *map[string]string) ([]events.SsfEvent, error) {
+	var ssfEventsList []events.SsfEvent
 
 	for _, set := range *sets {
 		token, err := jwt.Parse(set, func(token *jwt.Token) (interface{}, error) { return jwt.UnsafeAllowNoneSignatureType, nil })
 		if err != nil {
-			return []events.CaepEvent{}, err
+			return []events.SsfEvent{}, err
 		}
 
 		token.Claims.GetSubject()
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			return []events.CaepEvent{}, errors.New("Can't get JWT Claims")
+			return []events.SsfEvent{}, errors.New("Can't get JWT Claims")
 		}
 
-		caepEvents := claims["events"].(map[string]interface{})
-		for eventType, eventSubject := range caepEvents {
-			caepEvent, err := events.EventStructFromEvent(eventType, eventSubject, claims)
+		ssfEvents := claims["events"].(map[string]interface{})
+		for eventType, eventSubject := range ssfEvents {
+			ssfEvent, err := events.EventStructFromEvent(eventType, eventSubject, claims)
 			if err != nil {
-				return []events.CaepEvent{}, err
+				return []events.SsfEvent{}, err
 			}
 
-			caepEventsList = append(caepEventsList, caepEvent)
+			ssfEventsList = append(ssfEventsList, ssfEvent)
 		}
 	}
 
-	return caepEventsList, nil
+	return ssfEventsList, nil
 }

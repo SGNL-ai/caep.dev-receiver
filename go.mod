@@ -1,4 +1,4 @@
-module caep-receiver
+module caep.dev-receiver
 
 go 1.20
 

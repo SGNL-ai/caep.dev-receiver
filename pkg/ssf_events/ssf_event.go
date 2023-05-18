@@ -35,21 +35,21 @@ const DecentralizedIdentifierSubjectFormat = "did"
 const UniqueResourceIdentifierSubjectFormat = "uri"
 const AliasesSubjectFormat = "aliases"
 
-// Represents the interface that all CAEP Events should implement
+// Represents the interface that all SSF Events should implement
 //
 // See the SessionRevokedEvent (./events/session_revoked_event.go)
 // for an example
-type CaepEvent interface {
-	// Returns the Event URI of the CAEP Event
+type SsfEvent interface {
+	// Returns the Event URI for the given event
 	GetEventUri() string
 
 	// Returns the format of the event's subject
 	GetSubjectFormat() SubjectFormat
 
-	// Returns the subject of the CAEP Event
+	// Returns the subject of the event
 	GetSubject() map[string]interface{}
 
-	// Returns the Unix timestamp of the CAEP event
+	// Returns the Unix timestamp of the event
 	GetTimestamp() int64
 }
 
@@ -61,11 +61,11 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/session-revoked": SessionRevoked,
 }
 
-// Takes an event subject from the JSON of a CAEP Event, and converts it into the matching struct for that event
-func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (CaepEvent, error) {
+// Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
+func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
 
-	// Add more caep events as desired
+	// Add more Ssf Events as desired
 	switch eventEnum {
 	case SessionRevoked:
 		subjectAttributes, ok := eventSubject.(map[string]interface{})
@@ -120,7 +120,7 @@ func GetSubjectFormat(subject map[string]interface{}) (SubjectFormat, error) {
 	}
 }
 
-// Converts a list of Caep Events to a list of their corresponding Event URI's
+// Converts a list of Ssf Events to a list of their corresponding Event URI's
 func EventTypeArrayToEventUriArray(events []EventType) []string {
 	var eventUriArr []string
 	for i := 0; i < len(events); i++ {

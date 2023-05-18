@@ -1,10 +1,11 @@
 package main
 
 import (
-	"caep-receiver/pkg"
-	"caep-receiver/pkg/events"
 	"fmt"
 	"time"
+
+	"caep.dev-receiver/pkg"
+	events "caep.dev-receiver/pkg/ssf_events"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	receiver.DeleteReceiver()
 }
 
-func PrintEvents(events []events.CaepEvent) {
+func PrintEvents(events []events.SsfEvent) {
 	fmt.Printf("Number of events: %d\n", len(events))
 	for _, event := range events {
 		fmt.Println("--------EVENT-------")
