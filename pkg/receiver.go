@@ -22,7 +22,7 @@ const TransmitterPollRFC = "urn:ietf:rfc:8936"
 //
 // Returns an error if any process of configuring the receiver, registering
 // it with the transmitter, or setting up the poll interval failed
-func ConfigureReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
+func ConfigureSsfReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	if cfg.TransmitterUrl == "" || cfg.TransmitterPollUrl == "" || len(cfg.EventsRequested) == 0 || cfg.AuthorizationToken == "" {
 		return nil, errors.New("Receiver Config - missing required field")
 	}

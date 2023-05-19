@@ -17,7 +17,7 @@ func main() {
 		PollCallback:       PrintEvents,
 		PollInterval:       20,
 	}
-	receiver, err := pkg.ConfigureReceiver(receiverConfig)
+	receiver, err := pkg.ConfigureSsfReceiver(receiverConfig)
 	if err != nil {
 		print(err)
 	}

@@ -1,4 +1,4 @@
-package events
+package ssf_events
 
 import (
 	"errors"

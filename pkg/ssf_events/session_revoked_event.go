@@ -1,4 +1,4 @@
-package events
+package ssf_events
 
 // The session revoked event is a CAEP Event, defined here:
 // https://openid.net/specs/openid-caep-specification-1_0-ID1.html#rfc.section.3.1
