@@ -9,21 +9,34 @@ import (
 )
 
 func main() {
+	// Configure the receiver (do not specify poll callback if polling is not required yet)
 	receiverConfig := pkg.ReceiverConfig{
 		TransmitterUrl:     "https://ssf.stg.caep.dev",
 		TransmitterPollUrl: "https://ssf.stg.caep.dev/ssf/streams/poll",
 		EventsRequested:    []events.EventType{0},
 		AuthorizationToken: "f843a2ce-4e94-48d4-aed6-c1617024b245",
-		PollCallback:       PrintEvents,
-		PollInterval:       20,
+		PollCallback:       nil,
 	}
+	// Initialize the receiver but does not start polling
 	receiver, err := pkg.ConfigureSsfReceiver(receiverConfig)
 	if err != nil {
 		print(err)
 	}
 
-	time.Sleep(time.Duration(90) * time.Second)
+	print("sleep...\n")
+	time.Sleep(time.Duration(10) * time.Second)
+	print("awake!\n")
+	// Manually call the PollEvents() to poll events at desired time
+	events, err := receiver.PollEvents()
+	if err != nil {
+		print(err)
+	}
+
+	PrintEvents(events)
+	// Delete the receiver after done
 	receiver.DeleteReceiver()
+	fmt.Println("Deleting receiver...")
+
 }
 
 func PrintEvents(events []events.SsfEvent) {
