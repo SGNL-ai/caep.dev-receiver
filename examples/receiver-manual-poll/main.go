@@ -23,7 +23,9 @@ func main() {
 		print(err)
 	}
 
-	time.Sleep(time.Duration(60) * time.Second)
+	print("sleep...\n")
+	time.Sleep(time.Duration(10) * time.Second)
+	print("awake!\n")
 	// Manually call the PollEvents() to poll events at desired time
 	events, err := receiver.PollEvents()
 	if err != nil {
@@ -33,6 +35,7 @@ func main() {
 	PrintEvents(events)
 	// Delete the receiver after done
 	receiver.DeleteReceiver()
+	fmt.Println("Deleting receiver...")
 
 }
 
