@@ -20,10 +20,10 @@ import {
 ~~~ go
   // Configure the receiver (do not specify poll callback if polling is not required yet)
   receiverConfig := pkg.ReceiverConfig{
-  	TransmitterUrl:     "https://ssf.stg.caep.dev",
-  	TransmitterPollUrl: "https://ssf.stg.caep.dev/ssf/streams/poll",
+  	TransmitterUrl:     "<your transmitter url here>",
+  	TransmitterPollUrl: "<your transmitter poll url here>",
   	EventsRequested:    []events.EventType{0},
-  	AuthorizationToken: "f843a2ce-4e94-48d4-aed6-c1617024b245",
+  	AuthorizationToken: "<your access token here>",
   	PollCallback:       nil, // no polling
   }
   // Initialize the receiver but do not start polling
