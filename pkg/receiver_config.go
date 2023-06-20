@@ -1,6 +1,6 @@
 package pkg
 
-import events "caep.dev-receiver/pkg/ssf_events"
+import events "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
 
 type ReceiverConfig struct {
 	// TransmitterUrl defines the URL for the transmitter that

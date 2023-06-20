@@ -1,6 +1,6 @@
 package pkg
 
-import event "caep.dev-receiver/pkg/ssf_events"
+import event "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
 
 // Represents the interface for the SSF receiver with user facing
 // methods

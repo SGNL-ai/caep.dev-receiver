@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"caep.dev-receiver/pkg"
-	events "caep.dev-receiver/pkg/ssf_events"
+	"github.com/sgnl-ai/caep.dev-receiver/pkg"
+	events "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
 )
 
 func main() {
