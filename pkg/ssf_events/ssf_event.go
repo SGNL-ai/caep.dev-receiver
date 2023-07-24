@@ -10,6 +10,7 @@ type EventType int
 
 const (
 	SessionRevoked EventType = iota
+	CredentialChange
 )
 
 type SubjectFormat int
@@ -54,31 +55,54 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked: "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	SessionRevoked:   "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange: "https://schemas.openid.net/secevent/caep/event-type/credential-change",
 }
 
 var EventEnum = map[string]EventType{
-	"https://schemas.openid.net/secevent/caep/event-type/session-revoked": SessionRevoked,
+	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":   SessionRevoked,
+	"https://schemas.openid.net/secevent/caep/event-type/credential-change": CredentialChange,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
 func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
 
+	subjectAttributes, ok := eventSubject.(map[string]interface{})
+	timestamp, err := strconv.ParseInt(subjectAttributes["timestamp"].(string), 10, 64)
+	if !ok || err != nil {
+		return nil, errors.New("unable to parse event subject")
+	}
+
+	format, err := GetSubjectFormat(subjectAttributes["subject"].(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
+
 	// Add more Ssf Events as desired
 	switch eventEnum {
+	case CredentialChange:
+		credentialType, ok := subjectAttributes["credentialType"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse credential type")
+		}
+
+		changeType, ok := subjectAttributes["changeType"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse credential type")
+		}
+
+		event := CredentialChangeEvent{
+			Json:           claimsJson,
+			Format:         format,
+			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp: timestamp,
+			CredentialType: credentialType,
+			ChangeType:     changeType,
+		}
+		return &event, nil
+
 	case SessionRevoked:
-		subjectAttributes, ok := eventSubject.(map[string]interface{})
-		timestamp, err := strconv.ParseInt(subjectAttributes["timestamp"].(string), 10, 64)
-		if !ok || err != nil {
-			return nil, errors.New("Unable to parse event subject")
-		}
-
-		format, err := GetSubjectFormat(subjectAttributes["subject"].(map[string]interface{}))
-		if err != nil {
-			return nil, err
-		}
-
 		event := SessionRevokedEvent{
 			Json:           claimsJson,
 			Format:         format,
@@ -87,7 +111,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		}
 		return &event, nil
 	default:
-		return nil, errors.New("No matching events")
+		return nil, errors.New("no matching events")
 	}
 }
 
@@ -116,7 +140,7 @@ func GetSubjectFormat(subject map[string]interface{}) (SubjectFormat, error) {
 	case AliasesSubjectFormat:
 		return Aliases, nil
 	default:
-		return -1, errors.New("Unable to determine subject format")
+		return -1, errors.New("unable to determine subject format")
 	}
 }
 
