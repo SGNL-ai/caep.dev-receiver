@@ -1,5 +1,49 @@
 package ssf_events
 
+type CredentialType uint64
+
+const (
+	Password CredentialType = iota
+	Pin
+	X509
+	Fido2_platform
+	Fido2_roaming
+	Fido_u2f
+	Verifiable_credential
+	Phone_voice
+	Phone_sms
+	App
+)
+
+type ChangeType uint64
+
+const (
+	Create ChangeType = iota
+	Revoked
+	Update
+	Delete
+)
+
+var CredentialTypeEnumMap = map[uint64]CredentialType{
+	0: Password,
+	1: Pin,
+	2: X509,
+	3: Fido2_platform,
+	4: Fido2_roaming,
+	5: Fido_u2f,
+	6: Verifiable_credential,
+	7: Phone_voice,
+	8: Phone_sms,
+	9: App,
+}
+
+var ChangeTypeEnumMap = map[uint64]ChangeType{
+	0: Create,
+	1: Revoked,
+	2: Update,
+	3: Delete,
+}
+
 // The credential change event is a CAEP Event, defined here:
 // https://openid.net/specs/openid-caep-specification-1_0-ID1.html#rfc.section.3.1
 type CredentialChangeEvent struct {
@@ -26,11 +70,11 @@ type CredentialChangeEvent struct {
 
 	// CredentialType defines the type of credential of the CAEP Event that has been modified/removed.
 	// See https://openid.net/specs/openid-caep-specification-1_0.html#rfc.section.3.3.1 for the options for this field
-	CredentialType string
+	CredentialType CredentialType
 
 	// CredentialType defines the type of modification/deletion towards the credential of the CAEP Event.
 	// See https://openid.net/specs/openid-caep-specification-1_0.html#rfc.section.3.3.1 for the options for this field
-	ChangeType string
+	ChangeType ChangeType
 }
 
 func (event *CredentialChangeEvent) GetEventUri() string {
@@ -49,10 +93,10 @@ func (event *CredentialChangeEvent) GetTimestamp() int64 {
 	return event.EventTimestamp
 }
 
-func (event *CredentialChangeEvent) GetCredentialType() string {
+func (event *CredentialChangeEvent) GetCredentialType() CredentialType {
 	return event.CredentialType
 }
 
-func (event *CredentialChangeEvent) GetChangeType() string {
-	return event.CredentialType
+func (event *CredentialChangeEvent) GetChangeType() ChangeType {
+	return event.ChangeType
 }

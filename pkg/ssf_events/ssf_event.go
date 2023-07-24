@@ -82,12 +82,12 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 	// Add more Ssf Events as desired
 	switch eventEnum {
 	case CredentialChange:
-		credentialType, ok := subjectAttributes["credentialType"].(string)
+		credentialType, ok := subjectAttributes["credentialType"].(uint64)
 		if !ok {
 			return nil, errors.New("unable to parse credential type")
 		}
 
-		changeType, ok := subjectAttributes["changeType"].(string)
+		changeType, ok := subjectAttributes["changeType"].(uint64)
 		if !ok {
 			return nil, errors.New("unable to parse credential type")
 		}
@@ -97,8 +97,8 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			Format:         format,
 			Subject:        subjectAttributes["subject"].(map[string]interface{}),
 			EventTimestamp: timestamp,
-			CredentialType: credentialType,
-			ChangeType:     changeType,
+			CredentialType: CredentialTypeEnumMap[credentialType],
+			ChangeType:     ChangeTypeEnumMap[changeType],
 		}
 		return &event, nil
 
