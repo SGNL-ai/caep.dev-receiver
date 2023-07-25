@@ -52,6 +52,9 @@ type SsfEvent interface {
 
 	// Returns the Unix timestamp of the event
 	GetTimestamp() int64
+
+	// Return the type of event
+	GetType() EventType
 }
 
 var EventUri = map[EventType]string{

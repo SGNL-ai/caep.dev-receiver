@@ -100,3 +100,7 @@ func (event *CredentialChangeEvent) GetCredentialType() CredentialType {
 func (event *CredentialChangeEvent) GetChangeType() ChangeType {
 	return event.ChangeType
 }
+
+func (event *CredentialChangeEvent) GetType() EventType {
+	return CredentialChange
+}
