@@ -40,3 +40,7 @@ func (event *SessionRevokedEvent) GetSubject() map[string]interface{} {
 func (event *SessionRevokedEvent) GetTimestamp() int64 {
 	return event.EventTimestamp
 }
+
+func (event *SessionRevokedEvent) GetType() EventType {
+	return SessionRevoked
+}
