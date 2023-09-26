@@ -58,5 +58,5 @@ func (event *DeviceComplianceEvent) GetCurrentStatus() string {
 }
 
 func (event *DeviceComplianceEvent) GetType() EventType {
-	return CredentialChange
+	return DeviceCompliance
 }
