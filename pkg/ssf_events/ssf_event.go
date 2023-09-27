@@ -11,6 +11,7 @@ type EventType int
 const (
 	SessionRevoked EventType = iota
 	CredentialChange
+	DeviceCompliance
 )
 
 type SubjectFormat int
@@ -60,11 +61,13 @@ type SsfEvent interface {
 var EventUri = map[EventType]string{
 	SessionRevoked:   "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
 	CredentialChange: "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance: "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 }
 
 var EventEnum = map[string]EventType{
-	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":   SessionRevoked,
-	"https://schemas.openid.net/secevent/caep/event-type/credential-change": CredentialChange,
+	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":          SessionRevoked,
+	"https://schemas.openid.net/secevent/caep/event-type/credential-change":        CredentialChange,
+	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
@@ -111,6 +114,27 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			Format:         format,
 			Subject:        subjectAttributes["subject"].(map[string]interface{}),
 			EventTimestamp: timestamp,
+		}
+		return &event, nil
+
+	case DeviceCompliance:
+		previousStatus, ok := subjectAttributes["previousStatus"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse previous status")
+		}
+
+		currentStatus, ok := subjectAttributes["currentStatus"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse current status")
+		}
+
+		event := DeviceComplianceEvent{
+			Json:           claimsJson,
+			Format:         format,
+			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp: timestamp,
+			PreviousStatus: previousStatus,
+			CurrentStatus:  currentStatus,
 		}
 		return &event, nil
 	default:

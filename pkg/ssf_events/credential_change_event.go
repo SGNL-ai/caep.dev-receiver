@@ -45,7 +45,7 @@ var ChangeTypeEnumMap = map[uint64]ChangeType{
 }
 
 // The credential change event is a CAEP Event, defined here:
-// https://openid.net/specs/openid-caep-specification-1_0-ID1.html#rfc.section.3.1
+// https://openid.net/specs/openid-caep-specification-1_0-ID1.html#rfc.section.3.3
 type CredentialChangeEvent struct {
 	// Json defines the raw JSON of the CAEP Event. Used if
 	// a developer wants greater control over all the attributes
