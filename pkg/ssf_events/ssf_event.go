@@ -12,6 +12,7 @@ const (
 	SessionRevoked EventType = iota
 	CredentialChange
 	DeviceCompliance
+	TokenClaimsChange
 )
 
 type SubjectFormat int
@@ -59,15 +60,17 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked:   "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
-	CredentialChange: "https://schemas.openid.net/secevent/caep/event-type/credential-change",
-	DeviceCompliance: "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	SessionRevoked:    "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange:  "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance:  "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	TokenClaimsChange: "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
 }
 
 var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":          SessionRevoked,
 	"https://schemas.openid.net/secevent/caep/event-type/credential-change":        CredentialChange,
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
+	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
