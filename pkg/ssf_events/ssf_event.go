@@ -12,6 +12,7 @@ const (
 	SessionRevoked EventType = iota
 	CredentialChange
 	DeviceCompliance
+	AssuranceLevelChange
 )
 
 type SubjectFormat int
@@ -59,15 +60,17 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked:   "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
-	CredentialChange: "https://schemas.openid.net/secevent/caep/event-type/credential-change",
-	DeviceCompliance: "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	SessionRevoked:       "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange:     "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance:     "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	AssuranceLevelChange: "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
 }
 
 var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":          SessionRevoked,
 	"https://schemas.openid.net/secevent/caep/event-type/credential-change":        CredentialChange,
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
+	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
@@ -135,6 +138,33 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			EventTimestamp: timestamp,
 			PreviousStatus: previousStatus,
 			CurrentStatus:  currentStatus,
+		}
+		return &event, nil
+
+	case AssuranceLevelChange:
+		previousLevel, ok := subjectAttributes["previousLevel"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse previous level")
+		}
+
+		currentLevel, ok := subjectAttributes["currentLevel"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse current level")
+		}
+
+		changeDirection, ok := subjectAttributes["changeDirection"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse change direction")
+		}
+
+		event := AssuranceLevelChangeEvent{
+			Json:            claimsJson,
+			Format:          format,
+			Subject:         subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp:  timestamp,
+			PreviousLevel:   previousLevel,
+			CurrentLevel:    currentLevel,
+			ChangeDirection: changeDirection,
 		}
 		return &event, nil
 	default:
