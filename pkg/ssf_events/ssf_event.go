@@ -140,6 +140,21 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			CurrentStatus:  currentStatus,
 		}
 		return &event, nil
+
+	case TokenClaimsChange:
+		claims, ok := subjectAttributes["claims"].(map[string]interface{})
+		if !ok {
+			return nil, errors.New("unable to parse previous status")
+		}
+
+		event := TokenClaimsChangeEvent{
+			Json:           claimsJson,
+			Format:         format,
+			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp: timestamp,
+			Claims:         claims,
+		}
+		return &event, nil
 	default:
 		return nil, errors.New("no matching events")
 	}
