@@ -70,6 +70,10 @@ func (event *AssuranceLevelChangeEvent) GetChangeDirection() string {
 	return *event.ChangeDirection
 }
 
+func (event *AssuranceLevelChangeEvent) GetNamespace() string {
+	return event.Namespace
+}
+
 func (event *AssuranceLevelChangeEvent) GetType() EventType {
 	return AssuranceLevelChange
 }
