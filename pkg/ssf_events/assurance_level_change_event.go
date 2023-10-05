@@ -24,18 +24,22 @@ type AssuranceLevelChangeEvent struct {
 	// Unix time (seconds since January 1, 1970 UTC)
 	EventTimestamp int64
 
+	// the namespace of the values in the current_level and previous_level claims.
+	// See: https://openid.github.io/sharedsignals/openid-caep-specification-1_0.html#name-event-specific-claims-4 for valid values.
+	Namespace string
+
 	// the current NIST Authenticator Assurance Level (AAL) as defined in [SP800-63R3].
-	// See: https://openid.net/specs/openid-caep-specification-1_0.html#rfc.section.3.4.1 for valid values.
+	// See: https://openid.github.io/sharedsignals/openid-caep-specification-1_0.html#name-event-specific-claims-4 for valid values.
 	CurrentLevel string
 
-	// the previous NIST Authenticator Assurance Level (AAL) as defined in [SP800-63R3].
-	// See: https://openid.net/specs/openid-caep-specification-1_0.html#rfc.section.3.4.1 for valid values.
-	PreviousLevel string
+	// the previous NIST Authenticator Assurance Level (AAL) as defined in [SP800-63R3]. Optional.
+	// See: https://openid.github.io/sharedsignals/openid-caep-specification-1_0.html#name-event-specific-claims-4 for valid values.
+	PreviousLevel *string
 
-	// the Authenticator Assurance Level increased or decreased.
-	// Must be either 'increase' or 'decrease'. See: See: https://openid.net/specs/openid-caep-specification-1_0.html#rfc.section.3.4.1
+	// the Authenticator Assurance Level increased or decreased. Optional.
+	// Must be either 'increase' or 'decrease'. See: See: https://openid.github.io/sharedsignals/openid-caep-specification-1_0.html#name-event-specific-claims-4
 	// for more details.
-	ChangeDirection string
+	ChangeDirection *string
 }
 
 func (event *AssuranceLevelChangeEvent) GetEventUri() string {
@@ -55,7 +59,7 @@ func (event *AssuranceLevelChangeEvent) GetTimestamp() int64 {
 }
 
 func (event *AssuranceLevelChangeEvent) GetPreviousLevel() string {
-	return event.PreviousLevel
+	return *event.PreviousLevel
 }
 
 func (event *AssuranceLevelChangeEvent) GetCurrentLevel() string {
@@ -63,7 +67,7 @@ func (event *AssuranceLevelChangeEvent) GetCurrentLevel() string {
 }
 
 func (event *AssuranceLevelChangeEvent) GetChangeDirection() string {
-	return event.ChangeDirection
+	return *event.ChangeDirection
 }
 
 func (event *AssuranceLevelChangeEvent) GetType() EventType {

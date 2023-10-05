@@ -145,19 +145,17 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		return &event, nil
 
 	case AssuranceLevelChange:
-		previousLevel, ok := subjectAttributes["previousLevel"].(string)
-		if !ok {
-			return nil, errors.New("unable to parse previous level")
-		}
+		previousLevel, _ := subjectAttributes["previousLevel"].(string)
+		changeDirection, _ := subjectAttributes["changeDirection"].(string)
 
 		currentLevel, ok := subjectAttributes["currentLevel"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse current level")
 		}
 
-		changeDirection, ok := subjectAttributes["changeDirection"].(string)
+		namespace, ok := subjectAttributes["namespace"].(string)
 		if !ok {
-			return nil, errors.New("unable to parse change direction")
+			return nil, errors.New("unable to parse namespace")
 		}
 
 		event := AssuranceLevelChangeEvent{
@@ -165,9 +163,10 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			Format:          format,
 			Subject:         subjectAttributes["subject"].(map[string]interface{}),
 			EventTimestamp:  timestamp,
-			PreviousLevel:   previousLevel,
+			Namespace:       namespace,
+			PreviousLevel:   &previousLevel,
 			CurrentLevel:    currentLevel,
-			ChangeDirection: changeDirection,
+			ChangeDirection: &changeDirection,
 		}
 		return &event, nil
 
