@@ -12,6 +12,8 @@ const (
 	SessionRevoked EventType = iota
 	CredentialChange
 	DeviceCompliance
+	AssuranceLevelChange
+	TokenClaimsChange
 )
 
 type SubjectFormat int
@@ -59,15 +61,19 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked:   "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
-	CredentialChange: "https://schemas.openid.net/secevent/caep/event-type/credential-change",
-	DeviceCompliance: "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	SessionRevoked:       "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange:     "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance:     "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	AssuranceLevelChange: "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
+	TokenClaimsChange:    "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
 }
 
 var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/session-revoked":          SessionRevoked,
 	"https://schemas.openid.net/secevent/caep/event-type/credential-change":        CredentialChange,
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
+	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
+	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
@@ -135,6 +141,47 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			EventTimestamp: timestamp,
 			PreviousStatus: previousStatus,
 			CurrentStatus:  currentStatus,
+		}
+		return &event, nil
+
+	case AssuranceLevelChange:
+		previousLevel, _ := subjectAttributes["previousLevel"].(string)
+		changeDirection, _ := subjectAttributes["changeDirection"].(string)
+
+		currentLevel, ok := subjectAttributes["currentLevel"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse current level")
+		}
+
+		namespace, ok := subjectAttributes["namespace"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse namespace")
+		}
+
+		event := AssuranceLevelChangeEvent{
+			Json:            claimsJson,
+			Format:          format,
+			Subject:         subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp:  timestamp,
+			Namespace:       namespace,
+			PreviousLevel:   &previousLevel,
+			CurrentLevel:    currentLevel,
+			ChangeDirection: &changeDirection,
+		}
+		return &event, nil
+
+	case TokenClaimsChange:
+		claims, ok := subjectAttributes["claims"].(map[string]interface{})
+		if !ok {
+			return nil, errors.New("unable to parse claims")
+		}
+
+		event := TokenClaimsChangeEvent{
+			Json:           claimsJson,
+			Format:         format,
+			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			EventTimestamp: timestamp,
+			Claims:         claims,
 		}
 		return &event, nil
 	default:
