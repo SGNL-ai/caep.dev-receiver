@@ -57,16 +57,19 @@ type SsfReceiverImplementation struct {
 
 // Struct used to read a Transmitter's configuration
 type TransmitterConfig struct {
-	Issuer                   string   `json:"issuer"`
-	JwksUri                  string   `json:"jwks_uri,omitempty"`
-	DeliveryMethodsSupported []string `json:"delivery_methods_supported,omitempty"`
-	ConfigurationEndpoint    string   `json:"configuration_endpoint,omitempty"`
+	Issuer                   string                   `json:"issuer"`
+	JwksUri                  string                   `json:"jwks_uri,omitempty"`
+	DeliveryMethodsSupported []string                 `json:"delivery_methods_supported,omitempty"`
+	ConfigurationEndpoint    string                   `json:"configuration_endpoint,omitempty"`
+	SpecVersion              string                   `json:"spec_version,omitempty"`
+	AuthorizationSchemes     []map[string]interface{} `json:"authorization_schemes,omitempty"`
 }
 
 // Struct used to make a Create Stream request for the receiver
 type CreateStreamReq struct {
 	Delivery        SsfDelivery `json:"delivery"`
 	EventsRequested []string    `json:"events_requested"`
+	Description     string      `json:"description,omitempty"`
 }
 
 // Struct that defines the deliver method for the Create Stream Request
