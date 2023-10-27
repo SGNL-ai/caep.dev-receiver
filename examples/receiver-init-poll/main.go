@@ -75,6 +75,12 @@ func PrintEvents(events []ssf_events.SsfEvent) {
 			}
 			fmt.Printf("e: %v\n", e)
 
+		case ssf_events.VerificationEventType:
+			e, ok := event.(*ssf_events.VerificationEvent)
+			if !ok {
+				fmt.Printf("cannot convert")
+			}
+			fmt.Printf("e: %v\n", e)
 		}
 		fmt.Println("--------------------")
 	}
