@@ -14,6 +14,7 @@ const (
 	DeviceCompliance
 	AssuranceLevelChange
 	TokenClaimsChange
+	VerificationEventType
 )
 
 type SubjectFormat int
@@ -61,11 +62,12 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked:       "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
-	CredentialChange:     "https://schemas.openid.net/secevent/caep/event-type/credential-change",
-	DeviceCompliance:     "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
-	AssuranceLevelChange: "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
-	TokenClaimsChange:    "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
+	SessionRevoked:        "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange:      "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance:      "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	AssuranceLevelChange:  "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
+	TokenClaimsChange:     "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
+	VerificationEventType: "https://schemas.openid.net/secevent/caep/event-type/verification-event",
 }
 
 var EventEnum = map[string]EventType{
@@ -74,13 +76,27 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
+	"https://schemas.openid.net/secevent/caep/event-type/verification-event":       VerificationEventType,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
 func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
-
 	subjectAttributes, ok := eventSubject.(map[string]interface{})
+
+	if eventEnum == VerificationEventType {
+		state, ok := subjectAttributes["state"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse state")
+		}
+
+		event := VerificationEvent{
+			Json:  claimsJson,
+			State: state,
+		}
+		return &event, nil
+	}
+
 	timestamp, err := strconv.ParseInt(subjectAttributes["timestamp"].(string), 10, 64)
 	if !ok || err != nil {
 		return nil, errors.New("unable to parse event subject")
@@ -184,6 +200,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			Claims:         claims,
 		}
 		return &event, nil
+
 	default:
 		return nil, errors.New("no matching events")
 	}

@@ -11,10 +11,10 @@ import (
 func main() {
 	// Configure the receiver (do not specify poll callback if polling is not required yet)
 	receiverConfig := pkg.ReceiverConfig{
-		TransmitterUrl:     "https://ssf.stg.caep.dev",
-		TransmitterPollUrl: "https://ssf.stg.caep.dev/ssf/streams/poll",
-		EventsRequested:    []events.EventType{0},
-		AuthorizationToken: "f843a2ce-4e94-48d4-aed6-c1617024b245",
+		TransmitterUrl:     "https://ssf.caep.dev",
+		TransmitterPollUrl: "https://ssf.caep.dev/ssf/streams/poll",
+		EventsRequested:    []events.EventType{0, 1, 2, 3, 4},
+		AuthorizationToken: "<access token>",
 		PollCallback:       nil,
 	}
 	// Initialize the receiver but does not start polling
