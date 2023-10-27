@@ -11,10 +11,10 @@ import (
 func main() {
 	// Configure the receiver (specify the poll callback function and poll interval to start polling in each interval)
 	receiverConfig := pkg.ReceiverConfig{
-		TransmitterUrl:     "https://ssf.stg.caep.dev",
-		TransmitterPollUrl: "https://caep-ssf.sbx.sgnl.host/ssf/streams/poll",
+		TransmitterUrl:     "https://ssf.caep.dev",
+		TransmitterPollUrl: "https://ssf.caep.dev/ssf/streams/poll",
 		EventsRequested:    []ssf_events.EventType{0, 1, 2, 3, 4},
-		AuthorizationToken: "affcbce2-4e84-4ec1-8a64-174f05eaca67",
+		AuthorizationToken: "<access token>",
 		PollCallback:       PrintEvents,
 		PollInterval:       20,
 	}
