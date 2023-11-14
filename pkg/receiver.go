@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -54,13 +55,14 @@ func ConfigureSsfReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	}
 
 	receiver := SsfReceiverImplementation{
-		transmitterUrl:     cfg.TransmitterUrl,
-		transmitterPollUrl: cfg.TransmitterPollUrl,
-		eventsRequested:    events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-		authorizationToken: cfg.AuthorizationToken,
-		pollInterval:       300,
-		streamId:           streamId,
-		configurationUrl:   transmitterCfg.ConfigurationEndpoint,
+		transmitterUrl:       cfg.TransmitterUrl,
+		transmitterPollUrl:   cfg.TransmitterPollUrl,
+		eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+		authorizationToken:   cfg.AuthorizationToken,
+		transmitterStreamUrl: cfg.TransmitterStreamUrl,
+		pollInterval:         300,
+		streamId:             streamId,
+		configurationUrl:     transmitterCfg.ConfigurationEndpoint,
 	}
 	if cfg.PollInterval != 0 {
 		receiver.pollInterval = cfg.PollInterval
@@ -204,7 +206,15 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return []events.SsfEvent{}, err
+	}
+
+	if response.StatusCode != 20000 && response.StatusCode != 20200 {
+		return []events.SsfEvent{}, err
+	}
+
 	type SsfEventSets struct {
 		Sets map[string]string `json:"sets"`
 	}
@@ -221,7 +231,7 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 			fmt.Println(err)
 		}
 	}
-	events, err := parseSsfEventSets(&ssfEventsSets.Sets)
+	events, _ := parseSsfEventSets(&ssfEventsSets.Sets)
 
 	return events, nil
 }
@@ -243,6 +253,83 @@ func (receiver *SsfReceiverImplementation) DeleteReceiver() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (receiver *SsfReceiverImplementation) UpdateStreamStatus(status StreamStatus) (StreamStatus, error) {
+	client := &http.Client{}
+	updateStreamRequest := UpdateStreamRequest{StreamId: receiver.streamId, Status: EnumToStringStatusMap[status]}
+	requestBody, err := json.Marshal(updateStreamRequest)
+	if err != nil {
+		return 0, err
+	}
+
+	req, err := http.NewRequest("POST", receiver.transmitterStreamUrl, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return 0, err
+	}
+	type StatusResponse struct {
+		Status string `json:"status"`
+		Reason string `json:"reason,omitempty"`
+	}
+
+	var statusResponse StatusResponse
+	err = json.Unmarshal(body, &statusResponse)
+	if err != nil {
+		return 0, nil
+	}
+	return StatusEnumMap[statusResponse.Status], nil
+
+}
+
+func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, error) {
+	client := &http.Client{}
+	streamUrl := fmt.Sprintf("%s/status?stream_id=%s", receiver.transmitterStreamUrl, receiver.streamId)
+
+	req, err := http.NewRequest("GET", streamUrl, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return 0, err
+	}
+	type StatusResponse struct {
+		Status string `json:"status"`
+	}
+
+	var statusResponse StatusResponse
+	err = json.Unmarshal(body, &statusResponse)
+	if err != nil {
+		return 0, nil
+	}
+
+	return StatusEnumMap[statusResponse.Status], nil
 }
 
 // Method to acknowledge a list of JTI's (unique ids for each SSF Event) with the

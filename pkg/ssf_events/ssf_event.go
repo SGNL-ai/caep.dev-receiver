@@ -15,6 +15,7 @@ const (
 	AssuranceLevelChange
 	TokenClaimsChange
 	VerificationEventType
+	StreamUpdatedEventType
 )
 
 type SubjectFormat int
@@ -29,6 +30,18 @@ const (
 	UniqueResourceIdentifier
 	Aliases
 	ComplexSubject
+)
+
+type ComplexSubjectType int
+
+const (
+	User ComplexSubjectType = iota
+	Device
+	Session
+	Application
+	Tenant
+	Org_unit
+	Group
 )
 
 const AccountSubjectFormat = "account"
@@ -62,12 +75,13 @@ type SsfEvent interface {
 }
 
 var EventUri = map[EventType]string{
-	SessionRevoked:        "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
-	CredentialChange:      "https://schemas.openid.net/secevent/caep/event-type/credential-change",
-	DeviceCompliance:      "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
-	AssuranceLevelChange:  "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
-	TokenClaimsChange:     "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
-	VerificationEventType: "https://schemas.openid.net/secevent/caep/event-type/verification-event",
+	SessionRevoked:         "https://schemas.openid.net/secevent/caep/event-type/session-revoked",
+	CredentialChange:       "https://schemas.openid.net/secevent/caep/event-type/credential-change",
+	DeviceCompliance:       "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
+	AssuranceLevelChange:   "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
+	TokenClaimsChange:      "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
+	VerificationEventType:  "https://schemas.openid.net/secevent/caep/event-type/verification-event",
+	StreamUpdatedEventType: "https://schemas.openid.net/secevent/caep/event-type/stream-updated",
 }
 
 var EventEnum = map[string]EventType{
@@ -77,6 +91,7 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
 	"https://schemas.openid.net/secevent/caep/event-type/verification-event":       VerificationEventType,
+	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
@@ -84,6 +99,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 	eventEnum := EventEnum[eventUri]
 	subjectAttributes, ok := eventSubject.(map[string]interface{})
 
+	// Special Event Types
 	if eventEnum == VerificationEventType {
 		state, ok := subjectAttributes["state"].(string)
 		if !ok {
@@ -93,6 +109,21 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := VerificationEvent{
 			Json:  claimsJson,
 			State: state,
+		}
+		return &event, nil
+
+	} else if eventEnum == StreamUpdatedEventType {
+		status, ok := subjectAttributes["status"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse state")
+		}
+
+		reason, _ := subjectAttributes["reason"].(string)
+
+		event := StreamUpdatedEvent{
+			Json:   claimsJson,
+			Status: status,
+			Reason: reason,
 		}
 		return &event, nil
 	}
