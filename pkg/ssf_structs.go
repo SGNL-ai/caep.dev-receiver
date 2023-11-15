@@ -13,6 +13,12 @@ type SsfReceiver interface {
 
 	// Cleans up the Receiver's resources and deletes it from the transmitter
 	DeleteReceiver()
+
+	// Get stream status from the transmitter
+	GetStreamStatus() (StreamStatus, error)
+
+	// Update the stream status to the transmitter
+	UpdateStreamStatus(status StreamStatus) (StreamStatus, error)
 }
 
 // The struct that contains all the necessary fields and methods for the
@@ -28,7 +34,7 @@ type SsfReceiverImplementation struct {
 
 	// TransmitterStreamUrl defines the URL that the receiver will use
 	// to update/get the stream status
-	transmitterStreamUrl string
+	transmitterStatusUrl string
 
 	// eventsRequested contains a list of the SSF Event URI's requested
 	// by the receiver
