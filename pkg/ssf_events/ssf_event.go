@@ -32,18 +32,6 @@ const (
 	ComplexSubject
 )
 
-type ComplexSubjectType int
-
-const (
-	User ComplexSubjectType = iota
-	Device
-	Session
-	Application
-	Tenant
-	Org_unit
-	Group
-)
-
 const AccountSubjectFormat = "account"
 const EmailSubjectFormat = "email"
 const IssuerAndSubjectFormat = "iss_sub"
