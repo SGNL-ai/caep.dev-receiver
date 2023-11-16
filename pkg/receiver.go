@@ -45,6 +45,7 @@ func ConfigureSsfReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if transmitterCfg.ConfigurationEndpoint == "" {
 		return nil, errors.New("Given transmitter doesn't specify the configuration endpoint")
 	}
@@ -211,7 +212,7 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 		return []events.SsfEvent{}, err
 	}
 
-	if response.StatusCode != 20000 && response.StatusCode != 20200 {
+	if response.StatusCode != 200 && response.StatusCode != 202 {
 		return []events.SsfEvent{}, err
 	}
 
@@ -228,12 +229,11 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 	if len(ssfEventsSets.Sets) > 0 {
 		err = acknowledgeEvents(&ssfEventsSets.Sets, receiver)
 		if err != nil {
-			fmt.Println(err)
+			return []events.SsfEvent{}, nil
 		}
 	}
-	events, _ := parseSsfEventSets(&ssfEventsSets.Sets)
-
-	return events, nil
+	events, err := parseSsfEventSets(&ssfEventsSets.Sets)
+	return events, err
 }
 
 // Cleans up the resources used by the Receiver and deletes the Receiver's
@@ -255,13 +255,30 @@ func (receiver *SsfReceiverImplementation) DeleteReceiver() {
 	}
 }
 
-func (receiver *SsfReceiverImplementation) UpdateStreamStatus(status StreamStatus) (StreamStatus, error) {
+func (receiver *SsfReceiverImplementation) EnableStatus() (StreamStatus, error) {
 	if receiver.transmitterStatusUrl == "" {
 		return 0, errors.New("configured receiver does not have transmitter stream url")
 	}
+	return receiver.sendStatusUpdateRequest(StreamEnabled)
+}
 
+func (receiver *SsfReceiverImplementation) PauseStatus() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("configured receiver does not have transmitter stream url")
+	}
+	return receiver.sendStatusUpdateRequest(StreamPaused)
+}
+
+func (receiver *SsfReceiverImplementation) DisableStatus() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("configured receiver does not have transmitter stream url")
+	}
+	return receiver.sendStatusUpdateRequest(StreamDisabled)
+}
+
+func (receiver *SsfReceiverImplementation) sendStatusUpdateRequest(streamStatus StreamStatus) (StreamStatus, error) {
 	client := &http.Client{}
-	updateStreamRequest := UpdateStreamRequest{StreamId: receiver.streamId, Status: EnumToStringStatusMap[status]}
+	updateStreamRequest := UpdateStreamRequest{StreamId: receiver.streamId, Status: EnumToStringStatusMap[streamStatus]}
 	requestBody, err := json.Marshal(updateStreamRequest)
 	if err != nil {
 		return 0, err
@@ -294,10 +311,9 @@ func (receiver *SsfReceiverImplementation) UpdateStreamStatus(status StreamStatu
 	var statusResponse StatusResponse
 	err = json.Unmarshal(body, &statusResponse)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	return StatusEnumMap[statusResponse.Status], nil
-
 }
 
 func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, error) {
@@ -306,8 +322,7 @@ func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, erro
 	}
 
 	client := &http.Client{}
-	streamUrl := fmt.Sprintf("%s/status?stream_id=%s", receiver.transmitterStatusUrl, receiver.streamId)
-
+	streamUrl := fmt.Sprintf("%s?stream_id=%s", receiver.transmitterStatusUrl, receiver.streamId)
 	req, err := http.NewRequest("GET", streamUrl, nil)
 	if err != nil {
 		return 0, err
