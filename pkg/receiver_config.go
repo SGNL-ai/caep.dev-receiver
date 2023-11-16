@@ -18,6 +18,14 @@ type ReceiverConfig struct {
 	// Required
 	TransmitterPollUrl string
 
+	// TransmitterStreamUrl defines the URL that the receiver will use
+	// to update/get the stream status.
+	//
+	// Note - Must be a subpath of TransmitterUrl
+	//
+	// Optional
+	TransmitterStreamUrl string
+
 	// EventsRequested specified the SSF events you want to receiver
 	// from the transmitter.
 	//

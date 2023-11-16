@@ -13,6 +13,18 @@ type SsfReceiver interface {
 
 	// Cleans up the Receiver's resources and deletes it from the transmitter
 	DeleteReceiver()
+
+	// Get stream status from the transmitter
+	GetStreamStatus() (StreamStatus, error)
+
+	// Enable the stream
+	EnableStream() (StreamStatus, error)
+
+	// Pause the stream
+	PauseStream() (StreamStatus, error)
+
+	// Disable the stream
+	DisableStream() (StreamStatus, error)
 }
 
 // The struct that contains all the necessary fields and methods for the
@@ -25,6 +37,10 @@ type SsfReceiverImplementation struct {
 	// transmitterPollUrl defines the url that the receiver
 	// should hit to receive SSF Events
 	transmitterPollUrl string
+
+	// TransmitterStreamUrl defines the URL that the receiver will use
+	// to update/get the stream status
+	transmitterStatusUrl string
 
 	// eventsRequested contains a list of the SSF Event URI's requested
 	// by the receiver
@@ -61,6 +77,7 @@ type TransmitterConfig struct {
 	JwksUri                  string                   `json:"jwks_uri,omitempty"`
 	DeliveryMethodsSupported []string                 `json:"delivery_methods_supported,omitempty"`
 	ConfigurationEndpoint    string                   `json:"configuration_endpoint,omitempty"`
+	StatusEndpoint           string                   `json:"status_endpoint,omitempty"`
 	SpecVersion              string                   `json:"spec_version,omitempty"`
 	AuthorizationSchemes     []map[string]interface{} `json:"authorization_schemes,omitempty"`
 }
@@ -83,4 +100,31 @@ type PollTransmitterRequest struct {
 	Acknowledgements  []string `json:"ack"`
 	MaxEvents         int      `json:"maxEvents,omitempty"`
 	ReturnImmediately bool     `json:"returnImmediately"`
+}
+
+// Struct to make a request to update the stream status
+type UpdateStreamRequest struct {
+	StreamId string `json:"stream_id"`
+	Status   string `json:"status"`
+	Reason   string `json:"reason"`
+}
+
+type StreamStatus int
+
+const (
+	StreamEnabled StreamStatus = iota + 1
+	StreamPaused
+	StreamDisabled
+)
+
+var StatusEnumMap = map[string]StreamStatus{
+	"enabled":  StreamEnabled,
+	"paused":   StreamPaused,
+	"disabled": StreamDisabled,
+}
+
+var EnumToStringStatusMap = map[StreamStatus]string{
+	StreamEnabled:  "enabled",
+	StreamPaused:   "paused",
+	StreamDisabled: "disabled",
 }

@@ -81,6 +81,13 @@ func PrintEvents(events []ssf_events.SsfEvent) {
 				fmt.Printf("cannot convert")
 			}
 			fmt.Printf("e: %v\n", e)
+
+		case ssf_events.StreamUpdatedEventType:
+			e, ok := event.(*ssf_events.StreamUpdatedEvent)
+			if !ok {
+				fmt.Printf("cannot convert")
+			}
+			fmt.Printf("e: %v\n", e)
 		}
 		fmt.Println("--------------------")
 	}

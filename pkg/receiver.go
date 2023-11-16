@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -44,6 +45,7 @@ func ConfigureSsfReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if transmitterCfg.ConfigurationEndpoint == "" {
 		return nil, errors.New("Given transmitter doesn't specify the configuration endpoint")
 	}
@@ -54,13 +56,14 @@ func ConfigureSsfReceiver(cfg ReceiverConfig) (SsfReceiver, error) {
 	}
 
 	receiver := SsfReceiverImplementation{
-		transmitterUrl:     cfg.TransmitterUrl,
-		transmitterPollUrl: cfg.TransmitterPollUrl,
-		eventsRequested:    events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-		authorizationToken: cfg.AuthorizationToken,
-		pollInterval:       300,
-		streamId:           streamId,
-		configurationUrl:   transmitterCfg.ConfigurationEndpoint,
+		transmitterUrl:       cfg.TransmitterUrl,
+		transmitterPollUrl:   cfg.TransmitterPollUrl,
+		eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+		authorizationToken:   cfg.AuthorizationToken,
+		transmitterStatusUrl: transmitterCfg.StatusEndpoint,
+		pollInterval:         300,
+		streamId:             streamId,
+		configurationUrl:     transmitterCfg.ConfigurationEndpoint,
 	}
 	if cfg.PollInterval != 0 {
 		receiver.pollInterval = cfg.PollInterval
@@ -204,7 +207,15 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return []events.SsfEvent{}, err
+	}
+
+	if response.StatusCode != 200 && response.StatusCode != 202 {
+		return []events.SsfEvent{}, err
+	}
+
 	type SsfEventSets struct {
 		Sets map[string]string `json:"sets"`
 	}
@@ -218,12 +229,11 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 	if len(ssfEventsSets.Sets) > 0 {
 		err = acknowledgeEvents(&ssfEventsSets.Sets, receiver)
 		if err != nil {
-			fmt.Println(err)
+			return []events.SsfEvent{}, nil
 		}
 	}
 	events, err := parseSsfEventSets(&ssfEventsSets.Sets)
-
-	return events, nil
+	return events, err
 }
 
 // Cleans up the resources used by the Receiver and deletes the Receiver's
@@ -243,6 +253,106 @@ func (receiver *SsfReceiverImplementation) DeleteReceiver() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (receiver *SsfReceiverImplementation) EnableStream() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("configured receiver does not have transmitter stream url")
+	}
+	return receiver.sendStatusUpdateRequest(StreamEnabled)
+}
+
+func (receiver *SsfReceiverImplementation) PauseStream() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("configured receiver does not have transmitter stream url")
+	}
+	return receiver.sendStatusUpdateRequest(StreamPaused)
+}
+
+func (receiver *SsfReceiverImplementation) DisableStream() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("configured receiver does not have transmitter stream url")
+	}
+	return receiver.sendStatusUpdateRequest(StreamDisabled)
+}
+
+func (receiver *SsfReceiverImplementation) sendStatusUpdateRequest(streamStatus StreamStatus) (StreamStatus, error) {
+	client := &http.Client{}
+	updateStreamRequest := UpdateStreamRequest{StreamId: receiver.streamId, Status: EnumToStringStatusMap[streamStatus]}
+	requestBody, err := json.Marshal(updateStreamRequest)
+	if err != nil {
+		return 0, err
+	}
+
+	req, err := http.NewRequest("POST", receiver.transmitterStatusUrl, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return 0, err
+	}
+	type StatusResponse struct {
+		Status string `json:"status"`
+		Reason string `json:"reason,omitempty"`
+	}
+
+	var statusResponse StatusResponse
+	err = json.Unmarshal(body, &statusResponse)
+	if err != nil {
+		return 0, err
+	}
+	return StatusEnumMap[statusResponse.Status], nil
+}
+
+func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, error) {
+	if receiver.transmitterStatusUrl == "" {
+		return 0, errors.New("transmitter does not support stream status")
+	}
+
+	client := &http.Client{}
+	streamUrl := fmt.Sprintf("%s?stream_id=%s", receiver.transmitterStatusUrl, receiver.streamId)
+	req, err := http.NewRequest("GET", streamUrl, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return 0, err
+	}
+	type StatusResponse struct {
+		Status string `json:"status"`
+	}
+
+	var statusResponse StatusResponse
+	err = json.Unmarshal(body, &statusResponse)
+	if err != nil {
+		return 0, nil
+	}
+
+	return StatusEnumMap[statusResponse.Status], nil
 }
 
 // Method to acknowledge a list of JTI's (unique ids for each SSF Event) with the
