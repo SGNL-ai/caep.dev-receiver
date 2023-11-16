@@ -255,21 +255,21 @@ func (receiver *SsfReceiverImplementation) DeleteReceiver() {
 	}
 }
 
-func (receiver *SsfReceiverImplementation) EnableStatus() (StreamStatus, error) {
+func (receiver *SsfReceiverImplementation) EnableStream() (StreamStatus, error) {
 	if receiver.transmitterStatusUrl == "" {
 		return 0, errors.New("configured receiver does not have transmitter stream url")
 	}
 	return receiver.sendStatusUpdateRequest(StreamEnabled)
 }
 
-func (receiver *SsfReceiverImplementation) PauseStatus() (StreamStatus, error) {
+func (receiver *SsfReceiverImplementation) PauseStream() (StreamStatus, error) {
 	if receiver.transmitterStatusUrl == "" {
 		return 0, errors.New("configured receiver does not have transmitter stream url")
 	}
 	return receiver.sendStatusUpdateRequest(StreamPaused)
 }
 
-func (receiver *SsfReceiverImplementation) DisableStatus() (StreamStatus, error) {
+func (receiver *SsfReceiverImplementation) DisableStream() (StreamStatus, error) {
 	if receiver.transmitterStatusUrl == "" {
 		return 0, errors.New("configured receiver does not have transmitter stream url")
 	}

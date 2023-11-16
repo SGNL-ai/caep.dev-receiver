@@ -31,7 +31,7 @@ func main() {
 	fmt.Printf("streamStatus: %v\n", streamStatus)
 
 	// Update the receiver's stream status.
-	updatedStreamStatus, err := receiver.DisableStatus()
+	updatedStreamStatus, err := receiver.DisableStream()
 	if err != nil {
 		print(err)
 	}
@@ -45,7 +45,7 @@ func main() {
 	fmt.Printf("streamStatus: %v\n", streamStatus)
 
 	// Update the receiver's stream status back to enable.
-	updatedStreamStatus, err = receiver.EnableStatus()
+	updatedStreamStatus, err = receiver.EnableStream()
 	if err != nil {
 		print(err)
 	}

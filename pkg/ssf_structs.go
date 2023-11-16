@@ -18,13 +18,13 @@ type SsfReceiver interface {
 	GetStreamStatus() (StreamStatus, error)
 
 	// Enable the stream
-	EnableStatus() (StreamStatus, error)
+	EnableStream() (StreamStatus, error)
 
 	// Pause the stream
-	PauseStatus() (StreamStatus, error)
+	PauseStream() (StreamStatus, error)
 
 	// Disable the stream
-	DisableStatus() (StreamStatus, error)
+	DisableStream() (StreamStatus, error)
 }
 
 // The struct that contains all the necessary fields and methods for the
