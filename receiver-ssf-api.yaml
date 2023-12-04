@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: CAEP SSF API
+  description: CAEP.dev Receiver SSF API
+  contact:
+    name: API Support
+    email: hello@caep.dev
+  license:
+    name: MIT
+    url: https://developer.sgnl.ai/mit-license
+  termsOfService: https://sgnl.ai/TERMS-OF-SERVICE
+
+servers:
+  - url: https://ssf.caep.dev/ssf
+
+components:
+  securitySchemes:
+    BearerAuth: 
+      type: http
+      scheme: bearer
+
+security:
+  - BearerAuth: []
+
+paths:
+  /streams:
+    post:
+      description: create a stream with CAEP transmitter.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delivery:
+                  type: object
+                  properties:
+                    delivery_method:
+                      type: string 
+
+                event_requested:
+                  type: array
+                  items:
+                    type: string 
+              required:
+                - delivery
+                - event_requested
+
+      responses:
+        '200':
+
+  /streams/poll:
+    post:
+      description: Poll and/or acknowledge events from the stream. 
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxEvents: 
+                  type: integer
+                ack:
+                  type: array 
+                  items:
+                    type: string
+                returnImmediately:
+                  type: boolean
+              required:
+                - ack
+
+      responses:
+        '200':
+
+  /status:
+    get:
+      description: Get the status of the stream with CAEP transmitter. 
+      parameters: 
+        - in: query
+          name: stream_id
+          schema: 
+            type: string
+
+    post: 
+      description: Update the stream status to the CAEP transmitter. 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stream_id:
+                  type: string
+                status:
+                  type: enabled
+              required:
+                - stream_id
+                - status 
+              
+      responses: 
+        '200':
+
+  /subject:add:
+    post:
+      description: Add a subject to be listened by the stream. 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stream_id:
+                  type: string
+                verified:
+                  type: boolean 
+                subject:
+                  type: object
+                  additionalProperties: {}
+              required:
+                - stream_id
+                - subject
+                - verified 
+
+  /subject:remove:
+    post:
+      description: Remove a listened subject from the stream. 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stream_id:
+                  type: string
+                subject:
+                  type: object
+                  additionalProperties: {}
+              required:
+                - stream_id
+                - subject
+
