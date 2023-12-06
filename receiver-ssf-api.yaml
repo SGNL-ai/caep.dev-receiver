@@ -177,12 +177,16 @@ paths:
               $ref: "#/components/schemas/PollEventsRequest" 
 
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PollEventsResponse" 
+        "400":
+          description: Bad request. 
+        "401":
+          description: Invalid authorization. 
                       
   /status:
     get:
@@ -193,12 +197,16 @@ paths:
           schema: 
             type: string
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StatusResponse"
+        "400":
+          description: Bad request. 
+        "401":
+          description: Invalid authorization. 
                  
     post: 
       description: Update the stream status to the CAEP transmitter. 
@@ -209,12 +217,16 @@ paths:
             schema:
                $ref: "#/components/schemas/UpdateStatusRequest"      
       responses: 
-        '200':
+        "200":
           description: OK
             content:
               application/json:
                 schema:
                   $ref: "#/components/schemas/StatusResponse"
+        "400":
+          description: Bad request. 
+        "401":
+          description: Invalid authorization. 
 
   /subject:add:
     post:
@@ -226,8 +238,12 @@ paths:
             schema:
               $ref: "#/components/schemas/AddSubjectRequest"
       responses: 
-        '200':
+        "200":
           description: OK
+        "400":
+          description: Bad request. 
+        "401":
+          description: Invalid authorization. 
 
   /subject:remove:
     post:
@@ -239,5 +255,9 @@ paths:
             schema:
               $ref: "#/components/schemas/RemoveSubjectRequest"
       responses: 
-        '204':
+        "204":
           description: OK
+        "400":
+          description: Bad request. 
+        "401":
+          description: Invalid authorization. 
