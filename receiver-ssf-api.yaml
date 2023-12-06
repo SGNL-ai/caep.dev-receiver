@@ -19,6 +19,131 @@ components:
     BearerAuth: 
       type: http
       scheme: bearer
+  
+  schemas:
+    Delivery:
+      type: object
+      properties:
+        delivery_method:
+          type: string
+        endpoint_url:
+          type: string
+      required:
+        - delivery_method
+
+    CreateStreamRequest:
+      type: object
+      required:
+        - delivery
+        - event_requested
+      properties:
+        delivery:
+          $ref: "#/components/schemas/Delivery"
+        event_requested:
+          type: array
+          items:
+            type: string 
+        description:
+          type: string
+    
+    PollEventsRequest:
+      type: object
+      required:
+        - ack
+      properties:
+        maxEvents: 
+          type: integer
+        returnImmediately:
+          type: boolean
+        ack:
+          type: array 
+          items:
+            type: string
+
+    UpdateStatusRequest:
+      type: object
+      required:
+        - stream_id
+        - status
+      properties:
+        stream_id:
+          type: string
+        status:
+          type: string
+        description:
+          type: string 
+
+    AddSubjectRequest:
+      type: object
+      required:
+        - stream_id
+        - subject
+        - verified 
+      properties:
+        stream_id:
+          type: string
+        verified:
+          type: boolean 
+        subject:
+          type: object
+          additionalProperties: {}
+
+    RemoveSubjectRequest:
+      type: object
+      required:
+          - stream_id
+          - subject
+      properties:
+        stream_id:
+          type: string
+        subject:
+          type: object
+          additionalProperties: {}
+      
+    CreateStreamResponse:
+      type: object
+      properties:
+        stream_id:
+          type: string
+        iss:
+          type: string
+        aud:
+          type: string
+        events_supported:
+          type: array
+          items:
+            type: string 
+        events_requested:
+          type: array
+          items:
+            type: string 
+        events_delivered:
+          type: array
+          items:
+            type: string 
+        description:
+          type: string 
+        delivery:
+          $ref: "#/components/schemas/Delivery"
+
+    PollEventsResponse:
+      type: object
+      properties:
+        sets:
+          type: array
+          items:
+            type: object
+            patternProperties:
+              ^[A-ZA-z0-9]+$:
+                type: string 
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        description:
+          type: string
 
 security:
   - BearerAuth: []
@@ -27,56 +152,38 @@ paths:
   /streams:
     post:
       description: create a stream with CAEP transmitter.
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                delivery:
-                  type: object
-                  properties:
-                    delivery_method:
-                      type: string 
-
-                event_requested:
-                  type: array
-                  items:
-                    type: string 
-              required:
-                - delivery
-                - event_requested
-
+              $ref: "#/components/schemas/CreateStreamRequest"
       responses:
-        '200':
-
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateStreamResponse"
+                 
   /streams/poll:
     post:
       description: Poll and/or acknowledge events from the stream. 
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                maxEvents: 
-                  type: integer
-                ack:
-                  type: array 
-                  items:
-                    type: string
-                returnImmediately:
-                  type: boolean
-              required:
-                - ack
+              $ref: "#/components/schemas/PollEventsRequest" 
 
       responses:
         '200':
-
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PollEventsResponse" 
+                      
   /status:
     get:
       description: Get the status of the stream with CAEP transmitter. 
@@ -85,7 +192,14 @@ paths:
           name: stream_id
           schema: 
             type: string
-
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+                 
     post: 
       description: Update the stream status to the CAEP transmitter. 
       requestBody:
@@ -93,18 +207,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                stream_id:
-                  type: string
-                status:
-                  type: enabled
-              required:
-                - stream_id
-                - status 
-              
+               $ref: "#/components/schemas/UpdateStatusRequest"      
       responses: 
         '200':
+          description: OK
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/StatusResponse"
 
   /subject:add:
     post:
@@ -114,19 +224,10 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                stream_id:
-                  type: string
-                verified:
-                  type: boolean 
-                subject:
-                  type: object
-                  additionalProperties: {}
-              required:
-                - stream_id
-                - subject
-                - verified 
+              $ref: "#/components/schemas/AddSubjectRequest"
+      responses: 
+        '200':
+          description: OK
 
   /subject:remove:
     post:
@@ -136,14 +237,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                stream_id:
-                  type: string
-                subject:
-                  type: object
-                  additionalProperties: {}
-              required:
-                - stream_id
-                - subject
-
+              $ref: "#/components/schemas/RemoveSubjectRequest"
+      responses: 
+        '204':
+          description: OK
