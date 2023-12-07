@@ -1,6 +1,6 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
-  version: 1.0.0
+  version: 1.0.0-oas3
   title: CAEP SSF API
   description: CAEP.dev Receiver SSF API
   contact:
@@ -10,16 +10,13 @@ info:
     name: MIT
     url: https://developer.sgnl.ai/mit-license
   termsOfService: https://sgnl.ai/TERMS-OF-SERVICE
-
 servers:
-  - url: https://ssf.caep.dev/ssf
-
+  - url: https://caep-ssf.sbx.sgnl.host/ssf
 components:
   securitySchemes:
-    BearerAuth: 
+    BearerAuth:
       type: http
       scheme: bearer
-  
   schemas:
     Delivery:
       type: object
@@ -30,7 +27,6 @@ components:
           type: string
       required:
         - delivery_method
-
     CreateStreamRequest:
       type: object
       required:
@@ -38,28 +34,26 @@ components:
         - event_requested
       properties:
         delivery:
-          $ref: "#/components/schemas/Delivery"
+          $ref: '#/components/schemas/Delivery'
         event_requested:
           type: array
           items:
-            type: string 
+            type: string
         description:
           type: string
-    
     PollEventsRequest:
       type: object
       required:
         - ack
       properties:
-        maxEvents: 
+        maxEvents:
           type: integer
         returnImmediately:
           type: boolean
         ack:
-          type: array 
+          type: array
           items:
             type: string
-
     UpdateStatusRequest:
       type: object
       required:
@@ -71,35 +65,32 @@ components:
         status:
           type: string
         description:
-          type: string 
-
+          type: string
     AddSubjectRequest:
       type: object
       required:
         - stream_id
         - subject
-        - verified 
+        - verified
       properties:
         stream_id:
           type: string
         verified:
-          type: boolean 
+          type: boolean
         subject:
           type: object
           additionalProperties: {}
-
     RemoveSubjectRequest:
       type: object
       required:
-          - stream_id
-          - subject
+        - stream_id
+        - subject
       properties:
         stream_id:
           type: string
         subject:
           type: object
           additionalProperties: {}
-      
     CreateStreamResponse:
       type: object
       properties:
@@ -112,31 +103,25 @@ components:
         events_supported:
           type: array
           items:
-            type: string 
+            type: string
         events_requested:
           type: array
           items:
-            type: string 
+            type: string
         events_delivered:
           type: array
           items:
-            type: string 
+            type: string
         description:
-          type: string 
+          type: string
         delivery:
-          $ref: "#/components/schemas/Delivery"
-
+          $ref: '#/components/schemas/Delivery'
     PollEventsResponse:
       type: object
       properties:
         sets:
-          type: array
-          items:
-            type: object
-            patternProperties:
-              ^[A-ZA-z0-9]+$:
-                type: string 
-
+          type: object
+          additionalProperties: {}
     StatusResponse:
       type: object
       properties:
@@ -144,10 +129,8 @@ components:
           type: string
         description:
           type: string
-
 security:
   - BearerAuth: []
-
 paths:
   /streams:
     post:
@@ -157,107 +140,101 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateStreamRequest"
+              $ref: '#/components/schemas/CreateStreamRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateStreamResponse"
-                 
+                $ref: '#/components/schemas/CreateStreamResponse'
   /streams/poll:
     post:
-      description: Poll and/or acknowledge events from the stream. 
+      description: Poll and/or acknowledge events from the stream.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PollEventsRequest" 
-
+              $ref: '#/components/schemas/PollEventsRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PollEventsResponse" 
-        "400":
-          description: Bad request. 
-        "401":
-          description: Invalid authorization. 
-                      
+                $ref: '#/components/schemas/PollEventsResponse'
+        '400':
+          description: Bad request.
+        '401':
+          description: Invalid authorization.
   /status:
     get:
-      description: Get the status of the stream with CAEP transmitter. 
-      parameters: 
+      description: Get the status of the stream with CAEP transmitter.
+      parameters:
         - in: query
           name: stream_id
-          schema: 
+          schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StatusResponse"
-        "400":
-          description: Bad request. 
-        "401":
-          description: Invalid authorization. 
-                 
-    post: 
-      description: Update the stream status to the CAEP transmitter. 
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-               $ref: "#/components/schemas/UpdateStatusRequest"      
-      responses: 
-        "200":
-          description: OK
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/StatusResponse"
-        "400":
-          description: Bad request. 
-        "401":
-          description: Invalid authorization. 
-
-  /subject:add:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Bad request.
+        '401':
+          description: Invalid authorization.
     post:
-      description: Add a subject to be listened by the stream. 
+      description: Update the stream status to the CAEP transmitter.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddSubjectRequest"
-      responses: 
-        "200":
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
           description: OK
-        "400":
-          description: Bad request. 
-        "401":
-          description: Invalid authorization. 
-
-  /subject:remove:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          description: Bad request.
+        '401':
+          description: Invalid authorization.
+  /subjects:add:
     post:
-      description: Remove a listened subject from the stream. 
+      description: Add a subject to be listened by the stream.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RemoveSubjectRequest"
-      responses: 
-        "204":
+              $ref: '#/components/schemas/AddSubjectRequest'
+      responses:
+        '200':
           description: OK
-        "400":
-          description: Bad request. 
-        "401":
-          description: Invalid authorization. 
+        '400':
+          description: Bad request.
+        '401':
+          description: Invalid authorization.
+  /subjects:remove:
+    post:
+      description: Remove a listened subject from the stream.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveSubjectRequest'
+      responses:
+        '204':
+          description: OK
+        '400':
+          description: Bad request.
+        '401':
+          description: Invalid authorization.
