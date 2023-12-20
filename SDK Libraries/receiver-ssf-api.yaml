@@ -11,12 +11,8 @@ info:
     url: https://developer.sgnl.ai/mit-license
   termsOfService: https://sgnl.ai/TERMS-OF-SERVICE
 servers:
-  - url: https://caep-ssf.sbx.sgnl.host/ssf
+  - url: https://ssf.caep.dev/ssf
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
   schemas:
     Delivery:
       type: object
