@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   version: 1.0.0-oas3
-  title: CAEP SSF API
-  description: CAEP.dev Receiver SSF API
+  title: OpenID SSF API
+  description: CAEP.dev Receiver OpenID SSF API
   contact:
     name: API Support
     email: hello@caep.dev

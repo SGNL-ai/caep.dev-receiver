@@ -1,6 +1,6 @@
 # swagger-java-client
 
-CAEP SSF API
+OpenID SSF API
 - API version: 1.0.0-oas3
   - Build date: 2023-12-07T14:46:31.358537509Z[GMT]
 
