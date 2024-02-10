@@ -110,7 +110,7 @@ func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
 func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, error) {
 	client := &http.Client{}
 
-	delivery := SsfDelivery{DeliveryMethod: TransmitterPollRFC}
+	delivery := SsfDelivery{Method: TransmitterPollRFC}
 	createStreamRequest := CreateStreamReq{
 		Delivery:        delivery,
 		EventsRequested: events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
