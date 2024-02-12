@@ -91,7 +91,7 @@ type CreateStreamReq struct {
 
 // Struct that defines the deliver method for the Create Stream Request
 type SsfDelivery struct {
-	DeliveryMethod string `json:"delivery_method"`
+	Method string `json:"method"`
 }
 
 // Struct to make a request to poll SSF Events to the
