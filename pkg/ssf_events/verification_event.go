@@ -14,7 +14,7 @@ type VerificationEvent struct {
 }
 
 func (event *VerificationEvent) GetEventUri() string {
-	return "https://schemas.openid.net/secevent/caep/event-type/verification-event"
+	return "https://schemas.openid.net/secevent/ssf/event-type/verification"
 }
 
 func (event *VerificationEvent) GetSubjectFormat() SubjectFormat {

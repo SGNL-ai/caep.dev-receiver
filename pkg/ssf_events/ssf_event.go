@@ -3,7 +3,6 @@ package ssf_events
 import (
 	"errors"
 	"fmt"
-	"strconv"
 )
 
 type EventType int
@@ -68,7 +67,7 @@ var EventUri = map[EventType]string{
 	DeviceCompliance:       "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 	AssuranceLevelChange:   "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
 	TokenClaimsChange:      "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
-	VerificationEventType:  "https://schemas.openid.net/secevent/caep/event-type/verification-event",
+	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification",
 	StreamUpdatedEventType: "https://schemas.openid.net/secevent/caep/event-type/stream-updated",
 }
 
@@ -78,14 +77,18 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
-	"https://schemas.openid.net/secevent/caep/event-type/verification-event":       VerificationEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/verification":              VerificationEventType,
 	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
 func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
+
 	subjectAttributes, ok := eventSubject.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("unable to parse event subject")
+	}
 
 	// Special Event Types
 	if eventEnum == VerificationEventType {
@@ -116,10 +119,12 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		return &event, nil
 	}
 
-	timestamp, err := strconv.ParseInt(subjectAttributes["timestamp"].(string), 10, 64)
-	if !ok || err != nil {
-		return nil, errors.New("unable to parse event subject")
+	floatTimestamp, ok := subjectAttributes["event_timestamp"].(float64)
+	if !ok {
+		return nil, errors.New("unable to parse event timestamp")
 	}
+
+	timestamp := int64(floatTimestamp)
 
 	format, err := GetSubjectFormat(subjectAttributes["subject"].(map[string]interface{}))
 	if err != nil {
@@ -129,14 +134,24 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 	// Add more Ssf Events as desired
 	switch eventEnum {
 	case CredentialChange:
-		credentialType, ok := subjectAttributes["credentialType"].(float64)
+		rawCredentialType, ok := subjectAttributes["credential_type"].(string)
 		if !ok {
-			return nil, errors.New("unable to parse credential type")
+			return nil, errors.New("unable to parse credential type of a credential change event")
 		}
 
-		changeType, ok := subjectAttributes["changeType"].(float64)
+		credentialType, ok := CredentialTypesMap[rawCredentialType]
 		if !ok {
-			return nil, errors.New("unable to parse credential type")
+			return nil, errors.New("received invalid credential type for a credential change event")
+		}
+
+		rawChangeType, ok := subjectAttributes["change_type"].(string)
+		if !ok {
+			return nil, errors.New("unable to parse change type of a credential change event")
+		}
+
+		changeType, ok := ChangeTypesMap[rawChangeType]
+		if !ok {
+			return nil, errors.New("received invalid change type for a credential change event")
 		}
 
 		event := CredentialChangeEvent{
@@ -144,8 +159,8 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 			Format:         format,
 			Subject:        subjectAttributes["subject"].(map[string]interface{}),
 			EventTimestamp: timestamp,
-			CredentialType: CredentialTypeEnumMap[uint64(credentialType)],
-			ChangeType:     ChangeTypeEnumMap[uint64(changeType)],
+			CredentialType: credentialType,
+			ChangeType:     changeType,
 		}
 		return &event, nil
 

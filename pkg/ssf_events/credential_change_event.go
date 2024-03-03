@@ -1,47 +1,47 @@
 package ssf_events
 
-type CredentialType uint64
+type CredentialType string
 
 const (
-	Password CredentialType = iota
-	Pin
-	X509
-	Fido2_platform
-	Fido2_roaming
-	Fido_u2f
-	Verifiable_credential
-	Phone_voice
-	Phone_sms
-	App
+	Password              CredentialType = "password"
+	Pin                   CredentialType = "pin"
+	X509                  CredentialType = "x509"
+	Fido2_platform        CredentialType = "fido2_platform"
+	Fido2_roaming         CredentialType = "fido2_roaming"
+	Fido_u2f              CredentialType = "fido_u2f"
+	Verifiable_credential CredentialType = "verifiable_credential"
+	Phone_voice           CredentialType = "phone_voice"
+	Phone_sms             CredentialType = "phone_sms"
+	App                   CredentialType = "app"
 )
 
-type ChangeType uint64
+type ChangeType string
 
 const (
-	Create ChangeType = iota
-	Revoked
-	Update
-	Delete
+	Create  ChangeType = "create"
+	Revoked ChangeType = "revoked"
+	Update  ChangeType = "update"
+	Delete  ChangeType = "delete"
 )
 
-var CredentialTypeEnumMap = map[uint64]CredentialType{
-	0: Password,
-	1: Pin,
-	2: X509,
-	3: Fido2_platform,
-	4: Fido2_roaming,
-	5: Fido_u2f,
-	6: Verifiable_credential,
-	7: Phone_voice,
-	8: Phone_sms,
-	9: App,
+var CredentialTypesMap = map[string]CredentialType{
+	"password":              Password,
+	"pin":                   Pin,
+	"x509":                  X509,
+	"fido2-platform":        Fido2_platform,
+	"fido2-roaming":         Fido2_roaming,
+	"fido-u2f":              Fido_u2f,
+	"verifiable-credential": Verifiable_credential,
+	"phone-voice":           Phone_voice,
+	"phone-sms":             Phone_sms,
+	"app":                   App,
 }
 
-var ChangeTypeEnumMap = map[uint64]ChangeType{
-	0: Create,
-	1: Revoked,
-	2: Update,
-	3: Delete,
+var ChangeTypesMap = map[string]ChangeType{
+	"create": Create,
+	"revoke": Revoked,
+	"update": Update,
+	"delete": Delete,
 }
 
 // The credential change event is a CAEP Event, defined here:
