@@ -126,7 +126,12 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 
 	timestamp := int64(floatTimestamp)
 
-	format, err := GetSubjectFormat(subjectAttributes["subject"].(map[string]interface{}))
+	subject, ok := claimsJson["sub_id"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New("unable to parse event subject")
+	}
+
+	format, err := GetSubjectFormat(subject)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +162,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := CredentialChangeEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subject,
 			EventTimestamp: timestamp,
 			CredentialType: credentialType,
 			ChangeType:     changeType,
@@ -168,7 +173,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := SessionRevokedEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subject,
 			EventTimestamp: timestamp,
 		}
 		return &event, nil
@@ -187,7 +192,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := DeviceComplianceEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subject,
 			EventTimestamp: timestamp,
 			PreviousStatus: previousStatus,
 			CurrentStatus:  currentStatus,
@@ -211,7 +216,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := AssuranceLevelChangeEvent{
 			Json:            claimsJson,
 			Format:          format,
-			Subject:         subjectAttributes["subject"].(map[string]interface{}),
+			Subject:         subject,
 			EventTimestamp:  timestamp,
 			Namespace:       namespace,
 			PreviousLevel:   &previousLevel,
@@ -229,7 +234,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := TokenClaimsChangeEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subject,
 			EventTimestamp: timestamp,
 			Claims:         claims,
 		}
