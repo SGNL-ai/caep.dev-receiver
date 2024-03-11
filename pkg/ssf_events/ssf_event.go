@@ -81,7 +81,7 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
 }
 
-func extractSubject(claimsJson map[string]interface{}, subjectAttributes map[string]interface{}) (map[string]interface{}, error) {
+func extractSubject(claimsJson, subjectAttributes map[string]interface{}) (map[string]interface{}, error) {
 	if subId, ok := claimsJson["sub_id"]; ok {
 		if mapSubID, ok := subId.(map[string]interface{}); ok {
 			return mapSubID, nil
