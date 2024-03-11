@@ -81,6 +81,22 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
 }
 
+func extractSubject(claimsJson map[string]interface{}, subjectAttributes map[string]interface{}) (map[string]interface{}, error) {
+	if subId, ok := claimsJson["sub_id"]; ok {
+		if mapSubID, ok := subId.(map[string]interface{}); ok {
+			return mapSubID, nil
+		}
+	}
+
+	if subject, ok := subjectAttributes["subject"]; ok {
+		if mapSubject, ok := subject.(map[string]interface{}); ok {
+			return mapSubject, nil
+		}
+	}
+
+	return nil, errors.New("cannot retrieve subject of an event")
+}
+
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
 func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
@@ -126,9 +142,9 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 
 	timestamp := int64(floatTimestamp)
 
-	subject, ok := claimsJson["sub_id"].(map[string]interface{})
-	if !ok {
-		return nil, errors.New("unable to parse event subject")
+	subject, err := extractSubject(claimsJson, subjectAttributes)
+	if err != nil {
+		return nil, err
 	}
 
 	format, err := GetSubjectFormat(subject)
