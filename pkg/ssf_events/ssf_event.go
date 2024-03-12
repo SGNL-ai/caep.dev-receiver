@@ -82,13 +82,13 @@ var EventEnum = map[string]EventType{
 }
 
 func extractSubject(claimsJson, subjectAttributes map[string]interface{}) (map[string]interface{}, error) {
-	if subId, ok := claimsJson["sub_id"]; ok {
+	if subId, found := claimsJson["sub_id"]; found {
 		if mapSubID, ok := subId.(map[string]interface{}); ok {
 			return mapSubID, nil
 		}
 	}
 
-	if subject, ok := subjectAttributes["subject"]; ok {
+	if subject, found := subjectAttributes["subject"]; found {
 		if mapSubject, ok := subject.(map[string]interface{}); ok {
 			return mapSubject, nil
 		}
