@@ -11,7 +11,7 @@ simply add the following lines to your Go files:
 ~~~ go
 import {
   "github.com/sgnl-ai/caep.dev-receiver/pkg"
-  "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf-events"
+  "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
 }
 ~~~
 
